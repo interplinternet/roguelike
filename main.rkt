@@ -67,11 +67,11 @@
   (cond
     [(and (hash-has-key? entity-table pos) (hash-has-key? item-table pos))
      (list (hash-ref entity-table pos) (hash-ref item-table pos))]
-    [(and (hash-has-key? entity-table pos) (not (hash-has-key? item-table pos)))
+    [(hash-has-key? entity-table pos)
      (list (hash-ref entity-table pos))]
-    [(and (hash-has-key? item-table pos) (not (hash-has-key? entity-table pos)))
+    [(hash-has-key? item-table pos)
      (list (hash-ref item-table pos))]
-    [else #f]))
+    [else '()])) ; maybe #f, or '(())?
 
 ;;---------------------------------------------------------------------------------------------------
 #| Examples |#
@@ -81,15 +81,17 @@
 (define exgrid (make-grid 3 (terrain "floor")))
 (define EXMSGLOG '("most recent message" "immediately prior" "last message"))
 (define exmonhash
-  (make-immutable-hash `([,(posn 0 0) . (orc)]
-                         [,(posn 2 3) . (goblin)]
-                         [,(posn 3 3) . (,explayer)]
-                         [,(posn 1 1) . (doggo)])))
+  (hash (posn 0 0) `(orc)
+        (posn 2 3) `(goblin)
+        (posn 3 3) `(,explayer)
+        (posn 1 1) `(doggo)))
 (define exmonhash2 (hash-update exmonhash (posn 0 0) (curry cons 'gobbo)))
+
 (define exitemhash
-  (make-immutable-hash `([,(posn 0 0) . (chest)]
-                         [,(posn 2 3) . (dagger potion)]
-                         [,(posn 3 3) . (arrow)])))
+  (hash (posn 0 0) `(chest)
+        (posn 2 3) `(dagger potion)
+        (posn 3 3) `(arrow)))
+
 (define exworld (world exmonhash exitemhash exgrid))
 #| MAIN |#
 ; A grid is the game-playing map, where each "cell" is one UNIT wide and tall and contains terrain
