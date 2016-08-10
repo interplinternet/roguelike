@@ -8,14 +8,10 @@
 
 ; A Room is:
 (struct room [name function center neighbors] #:transparent)
-; (room Symbol [Number -> Any] Posn [Listof Symbol])
+; (room Symbol [Posn -> Any] Posn [Listof Symbol])
 ; The function determines the shape of the room, and the center is the location of its central point
 ; in the level. Neighbors field is a list of symbols representing the names of all of its neighbors.
 ; -- A room is really a node in a graph.
-
-(struct node (name neighbors) #:transparent)
-; A node is (node Symbol [Listof Symbol])
-; Where Symbol is the name of the node, and [Listof Symbol] is a list of the names of its neighbors.
 
 ; Symbol -> Number
 ; takes a symbol representing a cardinal direction and returns the appropriate index of a vector.
@@ -53,7 +49,7 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| Helpers |#
-(define dummy (λ (x) x))
+(define dummy (const 'dummy))
 ; [X -> Y] X Number -> Y
 (define (self-apply function initial-input times-to-apply)
   (for/fold ([base initial-input])
@@ -66,13 +62,10 @@
 (define HEIGHT 100)
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
-(define exroom (room (gensym) dummy BLANK-POSN BLANK-NEIGHBORS))
 
-; A Level is a list of nodes, the first one is the most recently created.
-(define example-level (list exroom))
 
 ;;---------------------------------------------------------------------------------------------------
-#| Examples |#
+#| Level Examples |#
 ;A level could be a cyclic graph
 ; However, we would have to abandon the struct form, only lists/vectors/etc. can be cyclic.
 (define cyclic-level
@@ -90,6 +83,10 @@
            [d (list 'd dummy (posn 10 20) b)])
     (values a b c d)))
 
+(define exroom (room (gensym) dummy BLANK-POSN BLANK-NEIGHBORS))
+
+; A Level is a list of nodes, the first one is the most recently created.
+(define example-level (list exroom))
 ;;---------------------------------------------------------------------------------------------------
 #| Functions |#
 ; [Listof Room] -> [Listof Room]
@@ -126,13 +123,14 @@
 ; is north of our previous one, attach the previous to the south slot.
 (define (make-room a-slot name prev-name)
   (room name
-        dummy
-        (posn (random WIDTH) (random HEIGHT)) ;wrap in λ to call later?
+        (random-shape)
+        (λ (width height) (posn WIDTH HEIGHT)) ; call later when generating grid
         ;do we create a room's position and then create a function to fit it,
         ;or create the function and position later?
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
 
 ; Room Slot Room -> Room
+; adds a new neighbor to a room.
 (define (add-new-neighbor prev-room a-slot new-room)
   (match prev-room
     [(room name shape center neighbors)
@@ -148,9 +146,9 @@
       [else (find-neighbors a-room (rest a-level))]))
 
 ; -> [X -> Y]
+; selects a random shape with random parameters within certain constraints.
 (define (random-shape)
-  (λ () 'dummy))
-
+  dummy)
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
 (define (gen-level number-of-rooms)
@@ -209,7 +207,7 @@
 ; inequalities? 
 ; each inequality is a function taking an x- or y- value to calculate
 ; slot the x- and y- values into each inequality and determine if it's true or not.
-
+; A line is an inequality which determines whether a point is on some side of it.
 (define/match ((shape center inequalities) point)
   [((posn h k) inequalities (posn x y)) (inequalities h k x y)])
 
@@ -223,10 +221,63 @@
                   (and (<= (- h (half-of width)) x (+ h (half-of width)))
                        (<= (- k (half-of height)) y (+ k (half-of height)))))))
 
+; [Number Number -> Boolean] [Number -> Boolean] -> Posn -> Boolean
+; Could be expressed concisely using J-style hooks.
+(define ((line oper function) point)
+  (oper (posn-y point) (function (posn-x point))))
+
+; Posn [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
+(define (triangle center base left right)
+  (shape center
+         (conjoin left right base)
+         #;(λ (h k x y)
+             (and ((line <= right) (posn x y))
+                  ((line <= left) (posn x y))
+                  ((line <= base) (posn x y))))))
+
+; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean]
+(define/match ((shape/l . lines) point)
+  [((list l ...) (posn x y)) [(apply conjoin l) x y]])
+
+; Number Number Number Number -> [Posn -> Boolean]
+(define (rect/l #:left left #:top top #:right right #:bottom bottom)
+  (shape/l (λ (x y) (>= x left))
+           (λ (x y) (<= y top))
+           (λ (x y) (<= x right))
+           (λ (x y) (>= y bottom))))
+
+; Posn Number -> [Posn -> Boolean]
+(define/match (circle/l center rad)
+  [((posn h k) rad)
+   (shape/l (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
+
+; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
+(define (triangle/l #:left left #:right right #:bottom bottom)
+  (shape/l (λ (x y) (<= y (left x)))
+           (λ (x y) (<= y (right x)))
+           (λ (x y) (>= y (bottom x)))))
+
+(define func
+  (λ (x) (+ (- x) 1)))
+
+(define right-side-of-triangle
+  (line <= (λ (x) (+ (- x) 1))))
+
+(define left-side-of-triangle
+  (line <= (λ (x) (+ x 1))))
+
+; using standard graphing rules, where 0 is at the center & the top is the
+; highest value, not the lowest.
+(define base-of-triangle
+  (line >= (λ (x) 0)))
+
+(define trigon
+  (conjoin right-side-of-triangle left-side-of-triangle base-of-triangle))
+
 (define excircle (circle (posn 10 10) (random1 max-radius)))
 (define exsquare (rectangle (posn 10 10) 10 10))
 
-; A triangle is a set of constraints, each representing a side.
+; A triangle is a set of inequalities, each representing a side.
 ; e.g., the right side is a line y = -(x) + 4 where x : 0 <= x <= 4
 ; the left side is a line y = x + 4, where x : -4 <= x <= 0
 ; and the bottom is a line y = 0
