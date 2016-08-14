@@ -251,6 +251,7 @@
   (define radians (random1 ROOM-WIDTH))
   (define center (random radians (- WIDTH radians)))
   dummy)
+
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
 (define (triangle left right base)
   (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
