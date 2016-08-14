@@ -76,7 +76,9 @@
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#
 (define WIDTH 100) ; the width of a level is 100 logical cells
-(define HEIGHT 100)
+(define HEIGHT WIDTH)
+(define ROOM-WIDTH (/ WIDTH 4)) ; a room can be no larger than a quarter of the map
+(define ROOM-HEIGHT ROOM-WIDTH)
 (define CELL 10) ; a cell is 10 real units wide/high
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
@@ -141,7 +143,7 @@
 (define (make-room a-slot name prev-name)
   (room name
         (random-shape)
-        (λ (width height) (posn WIDTH HEIGHT)) ; call later when generating grid
+        (λ (width height) (posn width height)) ; call later when generating grid
         ;do we create a room's position and then create a function to fit it,
         ;or create the function and position later?
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
@@ -184,7 +186,7 @@
 (define max-radius 10)
 (define max-width  10)
 (define max-height 10)
-(define random1 (compose1 add1 random)) ; 1 <= random-number <= given-number
+(define random1 (curry random 1)) ; 1 <= random-number <= given-number
 (define half-of (curryr / 2))
 
 ; A crescent is all points within a function with a center at (h, k) and a radius of 5, except for
@@ -233,7 +235,7 @@
   [(apply conjoin lines) (posn-x point) (posn-y point)])
 
 ; Number Number Number Number -> [Posn -> Boolean]
-(define (rectangle #:left left #:top top #:right right #:bottom bottom)
+(define (rectangle left top right bottom)
   (shape (λ (x y) (>= x left))
          (λ (x y) (<= y top))
          (λ (x y) (<= x right))
@@ -244,8 +246,13 @@
   [((posn h k) rad)
    (shape (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
 
+; -> [Posn -> Boolean]
+(define (random-circle)
+  (define radians (random1 ROOM-WIDTH))
+  (define center (random radians (- WIDTH radians)))
+  dummy)
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
-(define (triangle #:left left #:right right #:base base)
+(define (triangle left right base)
   (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
          (λ (x y) (<= y (right x)))
          (λ (x y) (>= y (base x)))))
@@ -253,7 +260,9 @@
 ; using standard graphing rules, where 0 is at the center & the top is the
 ; highest value, not the lowest.
 (define extriangle
-  (triangle #:left (λ (x) (+ x 1)) #:right (λ (x) (+ (- x) 1)) #:base (λ (x) 0)))
+  (triangle (λ (x) (+ x 1))
+            (λ (x) (+ (- x) 1))
+            (λ (x) 0)))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
