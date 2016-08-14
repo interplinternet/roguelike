@@ -56,13 +56,32 @@
             ([n (in-range times-to-apply)])
     (function base)))
 
+; [X Y -> Z] [N -> M] -> Z
+(define ((hook1 f1 f2) arg)
+  (f1 arg (f2 arg)))
+
+(define ((hook f1 f2) . args)
+  (apply f1 (append args ; previously cons (apply f2 args) args, but I like right->left
+                    (list (apply f2 args)))))
+
+(define ((hook/dyadic f1 f2) arg1 arg2) ; how could I make this variadic?
+  (f1 arg1 (f2 arg2)))
+
+(define ((fork head . fns) arg)
+  (apply head (map (λ (fn) (fn arg)) fns)))
+
+(define ((fork1 f1 f2 f3) arg)
+  (f1 (f2 arg) (f3 arg)))
+
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#
-(define WIDTH 100) ; in logical, not real, units.
-(define HEIGHT 100)
+(define WIDTH 100) ; the width of a level is 100 logical cells
+(define HEIGHT WIDTH)
+(define ROOM-WIDTH (/ WIDTH 4)) ; a room can be no larger than a quarter of the map
+(define ROOM-HEIGHT ROOM-WIDTH)
+(define CELL 10) ; a cell is 10 real units wide/high
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
-
 
 ;;---------------------------------------------------------------------------------------------------
 #| Level Examples |#
@@ -124,7 +143,7 @@
 (define (make-room a-slot name prev-name)
   (room name
         (random-shape)
-        (λ (width height) (posn WIDTH HEIGHT)) ; call later when generating grid
+        (λ (width height) (posn width height)) ; call later when generating grid
         ;do we create a room's position and then create a function to fit it,
         ;or create the function and position later?
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
@@ -149,6 +168,7 @@
 ; selects a random shape with random parameters within certain constraints.
 (define (random-shape)
   dummy)
+
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
 (define (gen-level number-of-rooms)
@@ -156,10 +176,6 @@
               number-of-rooms))
 
 (define exlevel (self-apply new-room (list exroom) 5))
-
-; Level -> Grid
-#;(define (make-grid a-level)
-    (define blank-grid (build-list WIDTH (λ (_) 'wall))))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Room shapes |#
@@ -170,7 +186,7 @@
 (define max-radius 10)
 (define max-width  10)
 (define max-height 10)
-(define random1 (compose1 add1 random)) ; 1 <= random-number <= given-number
+(define random1 (curry random 1)) ; 1 <= random-number <= given-number
 (define half-of (curryr / 2))
 
 ; A crescent is all points within a function with a center at (h, k) and a radius of 5, except for
@@ -208,79 +224,98 @@
 ; each inequality is a function taking an x- or y- value to calculate
 ; slot the x- and y- values into each inequality and determine if it's true or not.
 ; A line is an inequality which determines whether a point is on some side of it.
-(define/match ((shape center inequalities) point)
-  [((posn h k) inequalities (posn x y)) (inequalities h k x y)])
-
-; Posn Number -> [Posn -> Boolean]
-(define (circle center rad)
-  (shape center (λ (h k x y)
-                  (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad)))))
-
-(define (rectangle center width height)
-  (shape center (λ (h k x y)
-                  (and (<= (- h (half-of width)) x (+ h (half-of width)))
-                       (<= (- k (half-of height)) y (+ k (half-of height)))))))
 
 ; [Number Number -> Boolean] [Number -> Boolean] -> Posn -> Boolean
-; Could be expressed concisely using J-style hooks.
 (define ((line oper function) point)
   (oper (posn-y point) (function (posn-x point))))
-
-; Posn [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
-(define (triangle center base left right)
-  (shape center
-         (conjoin left right base)
-         #;(λ (h k x y)
-             (and ((line <= right) (posn x y))
-                  ((line <= left) (posn x y))
-                  ((line <= base) (posn x y))))))
+; ((hook/dyadic oper function) posn-y posn-x)
 
 ; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean]
-(define/match ((shape/l . lines) point)
-  [((list l ...) (posn x y)) [(apply conjoin l) x y]])
+; A shape consumes a number of inequalities representing lines of a geometric figure. It conjoins all
+; functions given, then applies them to the x- and y-points of a posn.
+; Question: Are the lines given in terms of logical points, or real ones?
+; It might be a better idea to give in terms of logical points, and convert when drawn to real points.
+; That makes determining whether a cell is within a shape much simpler, because we no longer need to
+; check every point within it. It will either be within the shape, or not.
+(define ((shape . lines) point)
+  [(apply conjoin lines) (posn-x point) (posn-y point)])
 
 ; Number Number Number Number -> [Posn -> Boolean]
-(define (rect/l #:left left #:top top #:right right #:bottom bottom)
-  (shape/l (λ (x y) (>= x left))
-           (λ (x y) (<= y top))
-           (λ (x y) (<= x right))
-           (λ (x y) (>= y bottom))))
+(define (rectangle left top right bottom)
+  (shape (λ (x y) (>= x left))
+         (λ (x y) (<= y top))
+         (λ (x y) (<= x right))
+         (λ (x y) (>= y bottom))))
 
 ; Posn Number -> [Posn -> Boolean]
-(define/match (circle/l center rad)
+(define/match (circle center rad)
   [((posn h k) rad)
-   (shape/l (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
+   (shape (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
+
+; -> [Posn -> Boolean]
+(define (random-circle)
+  (define radians (random1 ROOM-WIDTH))
+  (define center (random radians (- WIDTH radians)))
+  dummy)
 
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
-(define (triangle/l #:left left #:right right #:bottom bottom)
-  (shape/l (λ (x y) (<= y (left x)))
-           (λ (x y) (<= y (right x)))
-           (λ (x y) (>= y (bottom x)))))
-
-(define func
-  (λ (x) (+ (- x) 1)))
-
-(define right-side-of-triangle
-  (line <= (λ (x) (+ (- x) 1))))
-
-(define left-side-of-triangle
-  (line <= (λ (x) (+ x 1))))
+(define (triangle left right base)
+  (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
+         (λ (x y) (<= y (right x)))
+         (λ (x y) (>= y (base x)))))
 
 ; using standard graphing rules, where 0 is at the center & the top is the
 ; highest value, not the lowest.
-(define base-of-triangle
-  (line >= (λ (x) 0)))
+; Posn -> Boolean
+(define extriangle
+  (triangle (λ (x) (+ x 2))
+            (λ (x) (+ (- x) 2))
+            (λ (x) 0)))
 
-(define trigon
-  (conjoin right-side-of-triangle left-side-of-triangle base-of-triangle))
+;;---------------------------------------------------------------------------------------------------
+#| Grid Creation |#
+; Grid := [Listof Cell]
+; Cell := (cell Posn Number Number)
+; Where Posn is the anchor of the cell, in the upper left corner, and Number is width and height.
+(struct cell (anchor width height) #:transparent)
+(define excell (cell (posn 10 10) (/ WIDTH CELL) (/ HEIGHT CELL)))
+; Level -> [List Grid Grid]
+; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
+; containing all "wall" cells, or those which are not in a room.
+(define (make-grid level)
+  (define initial-grid (blank-grid WIDTH HEIGHT))
+  (define (make-level grid)
+    (cond
+      [(empty? grid) '()]
+      [else (if (andmap (λ (a-room) (cell-fits? (first grid) a-room)) level)
+                (cons (first grid) (make-level (rest grid)))
+                (make-level (rest grid)))]))
+  ; - IN -
+  ;(make-level initial-grid)
+  (partition (λ (a-cell)
+               (andmap (λ (a-room)
+                         (cell-fits? a-cell a-room))
+                       level))
+             initial-grid))
 
-(define excircle (circle (posn 10 10) (random1 max-radius)))
-(define exsquare (rectangle (posn 10 10) 10 10))
+; Cell Room -> Boolean
+(define (cell-fits? a-cell a-room)
+  (define the-shape (room-function a-room))
+  (the-shape (cell-anchor a-cell)))
+; Number Number -> Grid
+(define (blank-grid w h)
+  (for*/list ([x (in-range (/ w CELL))]
+              [y (in-range (/ h CELL))])
+    (cell (posn x y) (/ WIDTH CELL) (/ HEIGHT CELL))))
 
-; A triangle is a set of inequalities, each representing a side.
-; e.g., the right side is a line y = -(x) + 4 where x : 0 <= x <= 4
-; the left side is a line y = x + 4, where x : -4 <= x <= 0
-; and the bottom is a line y = 0
+; Cell [Listof Room] -> Boolean
+(define (all-points-fit? a-cell a-room)
+  (define the-shape (room-function a-room))
+  (match-define (cell (posn x-anchor y-anchor) width height) a-cell)
+  (for*/and ([x-pos (in-range x-anchor width)]
+             [y-pos (in-range y-anchor height)])
+    (the-shape (posn x-pos y-pos))))
+
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
 
@@ -294,8 +329,7 @@
   (cond
     [(empty? level) (blank WIDTH)]
     [else
-     (define first-room (first level))
-     (match-define (room name shape center neighbors) first-room)
+     (match-define (room name shape center neighbors) (first level))
      (pin-over (draw-level (rest level))
                (posn-x center)
                (posn-y center)
