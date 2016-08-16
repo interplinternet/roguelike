@@ -1,5 +1,6 @@
 #lang racket
 (require racket/shared pict)
+(provide (all-defined-out))
 ;;---------------------------------------------------------------------------------------------------
 #| Data |#
 ; A room is:
