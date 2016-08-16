@@ -1,5 +1,5 @@
 #lang racket
-(require racket/shared pict)
+(require racket/shared pict racket/trace)
 (provide (all-defined-out))
 ;;---------------------------------------------------------------------------------------------------
 #| Data |#
@@ -73,11 +73,11 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#
-(define WIDTH 100) ; the width of a level is 100 logical cells
+(define WIDTH 24) ; the width of a level is 100 logical cells
 (define HEIGHT WIDTH)
 (define ROOM-WIDTH (/ WIDTH 4)) ; a room can be no larger than a quarter of the map
 (define ROOM-HEIGHT ROOM-WIDTH)
-(define CELL 10) ; a cell is 10 real units wide/high
+(define CELL 200) ; a cell is 100 real units wide/high
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
 
@@ -155,19 +155,6 @@
     [(room name shape center neighbors)
      (room name shape center (neighbor-update neighbors a-slot (curry cons (room-name new-room))))]))
 
-; -> [X -> Y]
-; selects a random shape with random parameters within certain constraints.
-(define (random-shape)
-  dummy)
-
-; Number -> Level
-; Generates a level containing Number amount of rooms.
-(define (gen-level number-of-rooms)
-  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN BLANK-NEIGHBORS))
-              number-of-rooms))
-
-(define exlevel (self-apply new-room (list exroom) 5))
-
 ;;---------------------------------------------------------------------------------------------------
 #| Room shapes |#
 ; A room's shape can be represented as a function and/or a series of constraints. Each shape consumes
@@ -232,14 +219,22 @@
   [(apply conjoin lines) (posn-x point) (posn-y point)])
 
 ; Number Number Number Number -> [Posn -> Boolean]
-(define (rectangle left top right bottom)
+(define (rectangle/g left top right bottom)
   (shape (λ (x y) (>= x left))
          (λ (x y) (<= y top))
          (λ (x y) (<= x right))
          (λ (x y) (>= y bottom))))
 
+; -> [Posn -> Boolean]
+(define (random-rectangle)
+  (let* ([left (random (- WIDTH ROOM-WIDTH))]
+         [right (random (add1 left) WIDTH)]
+         [top (random (- HEIGHT ROOM-HEIGHT))]
+         [bottom (random (add1 top) HEIGHT)])
+    (rectangle/g left right top bottom)))
+
 ; Posn Number -> [Posn -> Boolean]
-(define/match (circle center rad)
+(define/match (circle/g center rad)
   [((posn h k) rad)
    (shape (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
 
@@ -247,10 +242,10 @@
 (define (random-circle)
   (define radians (random1 ROOM-WIDTH))
   (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
-  (circle center radians))
+  (circle/g center radians))
 
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
-(define (triangle left right base)
+(define (triangle/g left right base)
   (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
          (λ (x y) (<= y (right x)))
          (λ (x y) (>= y (base x)))))
@@ -261,17 +256,18 @@
   (define base-width (random1 ROOM-WIDTH))
   (define y-intercept (random1 HEIGHT))
   (define base-y-intercept (random1 (- y-intercept 5)))
-  (triangle dummy
-            dummy
-            (const base-y-intercept)))
+  (define (random-slope) (expt y-intercept (random 2))) ; something might be giving a negative number
+  (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
+              (λ (x) (+ (* (random-slope) (- x)) y-intercept)) ; how do I generate a random slope?
+              (const base-y-intercept)))
 
 ; using standard graphing rules, where 0 is at the center & the top is the
 ; highest value, not the lowest.
 ; Posn -> Boolean
 (define extriangle
-  (triangle (λ (x) (+ x 2))
-            (λ (x) (+ (- x) 2))
-            (λ (x) 0)))
+  (triangle/g (λ (x) (+ x 2))
+              (λ (x) (+ (- x) 2))
+              (λ (x) 0)))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
@@ -299,25 +295,28 @@
   (the-shape (cell-anchor a-cell)))
 
 ; Number Number -> Grid
+; Consumes 2 numbers representing the number of logical cells each row and column should have.
 (define (blank-grid w h)
-  (for*/list ([x (in-range (/ w CELL))]
-              [y (in-range (/ h CELL))])
+  (for*/list ([x (in-range w)]
+              [y (in-range h)])
     (cell (posn x y))))
 
-; Cell [Listof Room] -> Boolean
-(define (all-points-fit? a-cell a-room)
-  (define the-shape (room-function a-room))
-  (match-define (cell (posn x-anchor y-anchor)) a-cell)
-  (for*/and ([x-pos (in-range (add1 x-anchor))]
-             [y-pos (in-range (add1 y-anchor))])
-    (the-shape (posn x-pos y-pos))))
+;-> [X -> Y]
+; selects a random shape with random parameters within certain constraints.
+(define (random-shape)
+  (define list-of-shapes (list random-circle random-triangle random-rectangle))
+  [(list-ref list-of-shapes (random (length list-of-shapes)))])
 
+; Number -> Level
+; Generates a level containing Number amount of rooms.
+(define (gen-level number-of-rooms)
+  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN BLANK-NEIGHBORS))
+              number-of-rooms))
+
+(define exlevel (self-apply new-room (list exroom) 5))
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
 
-; Maybe you could use the collector idiom here. Each call of the function wraps the base-call with
-; another "layer", placing a new circle at (x, y) on the recursive call.
-; Or you could just use pin-over.
 ; Level -> Image
 ; To draw a level, we center its shape at its center location. Then, for every neighbor
 ; it has we overlay a line to them and recurse on each. Maybe I can use pict-finders?
@@ -330,3 +329,34 @@
                (posn-x center)
                (posn-y center)
                (circle 10))]))
+
+; To draw a grid, first generate a blank grid. Then take every cell in the grid and color it
+; according to whether it is a member of a room in the level or not. If it is, then it's white.
+; If it's not, then it's black. Append each cell in a row horizontally, append each row vertically.
+
+; hey here's an idea, what about "implicit cut" macro? similar to scala fancy app for racket, but
+; using an already established srfi
+(define (star-it fn args) (apply fn args))
+(define (vl-append* images) (apply vl-append images))
+(define (ht-append* images) (apply ht-append images))
+
+; Level -> Image
+; This is very slow.
+(define (draw-grid level)
+  (define grid (blank-grid WIDTH HEIGHT))
+  ; Grid [Listof Image] -> Image
+  (define (draw-rows a-grid images)
+    (cond
+      [(empty? a-grid) (blank)]
+      [(= (length images) WIDTH)
+       (define img-row (apply ht-append images))
+       (vl-append img-row (draw-rows (rest a-grid) '()))]
+      [else (draw-rows (rest a-grid) (cons (white-or-black-cell (first a-grid) level) images))]))
+  ; - IN -
+  (draw-rows grid '()))
+
+; Cell Level -> Image
+(define (white-or-black-cell a-cell level)
+  (if (andmap (curry cell-fits? a-cell) level)
+      (rectangle CELL CELL)
+      (filled-rectangle CELL CELL)))

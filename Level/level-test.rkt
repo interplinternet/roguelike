@@ -12,8 +12,8 @@
   ; A shape is a series of inequalities which consume a point & determine if a point exists within it
   (test-case
       "Circles"
-    (define ex-circle (circle (posn 10 10) 5)) ; a circle centered at (10, 10) with a radius of 25
-    ; units
+    ; a circle centered at (10, 10) with a radius of 25 units
+    (define ex-circle (circle (posn 10 10) 5))
     (define circle-true-test (check-true-shape* ex-circle))
     (define circle-false-test (check-false-shape* ex-circle))
     (andmap circle-true-test (list (posn 10 10) ;center
@@ -31,7 +31,11 @@
     (andmap rectangle-test (list (posn 0 0) (posn 5 5) (posn 0 5) (posn 5 0) (posn 2.5 2.5))))
   (test-case
       "Triangles"
-    #t)
+    (define ex-triangle (triangle (λ (x) (+ x 2))
+                                  (λ (x) (+ (- x) 2))
+                                  (λ (x) 0)))
+    (define triangle-true-test (check-true-shape* ex-triangle))
+    (andmap triangle-true-test (list (posn 0 0) (posn -2 0) (posn 2 0) (posn 1/2 1/2))))
   #;(test-case
         "Crescents"
       #t)
