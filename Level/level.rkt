@@ -275,19 +275,19 @@
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
 ; Grid := [Listof Cell]
-; Cell := (cell Posn Number Number)
-; Where Posn is the anchor of the cell, in the upper left corner, and Number is width and height.
-(struct cell (anchor width height) #:transparent)
-(struct lcell (anchor) #:transparent) ; a cell with no width or height, only an anchor
+; Cell := (cell Posn)
+; Where Posn is the anchor of the cell, in the upper left corner
+(struct cell (anchor) #:transparent) ; a cell is a logical unit, it's drawing is deferred to another
+; module later on.
 
-(define excell (cell (posn 10 10) (/ WIDTH CELL) (/ HEIGHT CELL)))
+(define excell (cell (posn 10 10)))
 ; Level -> [List Grid Grid]
 ; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
 ; containing all "wall" cells, or those which are not in a room.
 (define (make-grid level)
   (define initial-grid (blank-grid WIDTH HEIGHT))
   ; - IN -
-  (partition (λ (a-cell)
+  (partition (λ (a-cell) ; there must be a cleaner way of describing this.
                (for/and ([a-room level])
                  (cell-fits? a-cell a-room)))
              initial-grid))
@@ -301,15 +301,14 @@
 (define (blank-grid w h)
   (for*/list ([x (in-range (/ w CELL))]
               [y (in-range (/ h CELL))])
-    (cell (posn x y) (/ WIDTH CELL) (/ HEIGHT CELL))))
+    (cell (posn x y))))
 
 ; Cell [Listof Room] -> Boolean
-; Remember to swap to logical cells, not real ones.
 (define (all-points-fit? a-cell a-room)
   (define the-shape (room-function a-room))
-  (match-define (cell (posn x-anchor y-anchor) width height) a-cell)
-  (for*/and ([x-pos (in-range x-anchor width)]
-             [y-pos (in-range y-anchor height)])
+  (match-define (cell (posn x-anchor y-anchor)) a-cell)
+  (for*/and ([x-pos (in-range (add1 x-anchor))]
+             [y-pos (in-range (add1 y-anchor))])
     (the-shape (posn x-pos y-pos))))
 
 ;;---------------------------------------------------------------------------------------------------
