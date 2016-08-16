@@ -256,7 +256,7 @@
   (define base-width (random1 ROOM-WIDTH))
   (define y-intercept (random1 HEIGHT))
   (define base-y-intercept (random1 (- y-intercept 5)))
-  (define (random-slope) (expt y-intercept (random 2))) ; something might be giving a negative number
+  (define (random-slope) (expt y-intercept (random 1))) ; something might be giving a negative number
   (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
               (λ (x) (+ (* (random-slope) (- x)) y-intercept)) ; how do I generate a random slope?
               (const base-y-intercept)))
@@ -297,8 +297,8 @@
 ; Number Number -> Grid
 ; Consumes 2 numbers representing the number of logical cells each row and column should have.
 (define (blank-grid w h)
-  (for*/list ([x (in-range w)]
-              [y (in-range h)])
+  (for*/list ([y (in-range h)]
+              [x (in-range w)])
     (cell (posn x y))))
 
 ;-> [X -> Y]
@@ -341,7 +341,8 @@
 (define (ht-append* images) (apply ht-append images))
 
 ; Level -> Image
-; This is very slow.
+; This is very slow. Grids are drawn incorrectly. Might be possible to fix by passing a list of lists,
+; where each list is a row.
 (define (draw-grid level)
   (define grid (blank-grid WIDTH HEIGHT))
   ; Grid [Listof Image] -> Image
@@ -349,14 +350,25 @@
     (cond
       [(empty? a-grid) (blank)]
       [(= (length images) WIDTH)
-       (define img-row (apply ht-append images))
-       (vl-append img-row (draw-rows (rest a-grid) '()))]
+       (define img-row (apply ht-append (reverse images)))
+       (vl-append img-row (draw-rows a-grid '()))]
       [else (draw-rows (rest a-grid) (cons (white-or-black-cell (first a-grid) level) images))]))
   ; - IN -
   (draw-rows grid '()))
 
 ; Cell Level -> Image
 (define (white-or-black-cell a-cell level)
-  (if (andmap (curry cell-fits? a-cell) level)
-      (rectangle CELL CELL)
-      (filled-rectangle CELL CELL)))
+  (match-define (cell (posn x y)) a-cell)
+  (pin-over (if (andmap (curry cell-fits? a-cell) level)
+                (rectangle CELL CELL)
+                (filled-rectangle CELL CELL))
+            5 5
+            (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
+
+; In racket, the origin is at the upper left and not the center. Shapes may appear rotated or strange.
+(define extriangle2
+  (triangle/g (λ (x) (- x 6))
+              (λ (x) (+ (- x) 12))
+              (const 0)))
+(define excircle2
+  (circle/g (posn 6 6) 2))
