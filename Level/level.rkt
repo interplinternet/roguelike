@@ -41,10 +41,7 @@
               (if (= indx pos) (updater elem) elem)))
           #(() () () ())))
 
-;(struct neighbor (north east south west) #:transparent)
-; A node can have a neighbor in any cardinal direction.
-
-; A Level is [Listof Room] or Empty
+; A Level is [Listof Room]
 ; A Room is (room Symbol [X -> Y] Posn Level)
 
 ;;---------------------------------------------------------------------------------------------------
@@ -146,6 +143,8 @@
         (λ (width height) (posn width height)) ; call later when generating grid
         ;do we create a room's position and then create a function to fit it,
         ;or create the function and position later?
+        ; We create a function for a room, then we take the remaining grid which is not in that room,
+        ; and create new rooms from that grid?
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
 
 ; Room Slot Room -> Room
@@ -154,15 +153,6 @@
   (match prev-room
     [(room name shape center neighbors)
      (room name shape center (neighbor-update neighbors a-slot (curry cons (room-name new-room))))]))
-
-; Room Level -> Room
-#;(define (find-neighbors a-room a-level)
-    (define neighbors )
-    (cond
-      [(empty? a-level) '()]
-      [(symbol=? (room-name (first a-level)) (room-name a-room))
-       (first a-level)]
-      [else (find-neighbors a-room (rest a-level))]))
 
 ; -> [X -> Y]
 ; selects a random shape with random parameters within certain constraints.
@@ -255,14 +245,24 @@
 ; -> [Posn -> Boolean]
 (define (random-circle)
   (define radians (random1 ROOM-WIDTH))
-  (define center (random radians (- WIDTH radians)))
-  dummy)
+  (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
+  (circle center radians))
 
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
 (define (triangle left right base)
   (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
          (λ (x y) (<= y (right x)))
          (λ (x y) (>= y (base x)))))
+
+(define (random-triangle)
+  ; The width of the triangle's base can be no wider than the max-width of a room, and can be
+  ; expressed as the product of the y-intercept and the slope.
+  (define base-width (random1 ROOM-WIDTH))
+  (define y-intercept (random1 HEIGHT))
+  (define base-y-intercept (random1 (- y-intercept 5)))
+  (triangle dummy
+            dummy
+            (const base-y-intercept)))
 
 ; using standard graphing rules, where 0 is at the center & the top is the
 ; highest value, not the lowest.
@@ -278,30 +278,25 @@
 ; Cell := (cell Posn Number Number)
 ; Where Posn is the anchor of the cell, in the upper left corner, and Number is width and height.
 (struct cell (anchor width height) #:transparent)
+(struct lcell (anchor) #:transparent) ; a cell with no width or height, only an anchor
+
 (define excell (cell (posn 10 10) (/ WIDTH CELL) (/ HEIGHT CELL)))
 ; Level -> [List Grid Grid]
 ; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
 ; containing all "wall" cells, or those which are not in a room.
 (define (make-grid level)
   (define initial-grid (blank-grid WIDTH HEIGHT))
-  (define (make-level grid)
-    (cond
-      [(empty? grid) '()]
-      [else (if (andmap (λ (a-room) (cell-fits? (first grid) a-room)) level)
-                (cons (first grid) (make-level (rest grid)))
-                (make-level (rest grid)))]))
   ; - IN -
-  ;(make-level initial-grid)
   (partition (λ (a-cell)
-               (andmap (λ (a-room)
-                         (cell-fits? a-cell a-room))
-                       level))
+               (for/and ([a-room level])
+                 (cell-fits? a-cell a-room)))
              initial-grid))
 
 ; Cell Room -> Boolean
 (define (cell-fits? a-cell a-room)
   (define the-shape (room-function a-room))
   (the-shape (cell-anchor a-cell)))
+
 ; Number Number -> Grid
 (define (blank-grid w h)
   (for*/list ([x (in-range (/ w CELL))]
@@ -309,6 +304,7 @@
     (cell (posn x y) (/ WIDTH CELL) (/ HEIGHT CELL))))
 
 ; Cell [Listof Room] -> Boolean
+; Remember to swap to logical cells, not real ones.
 (define (all-points-fit? a-cell a-room)
   (define the-shape (room-function a-room))
   (match-define (cell (posn x-anchor y-anchor) width height) a-cell)
