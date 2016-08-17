@@ -254,7 +254,7 @@
   ; The width of the triangle's base can be no wider than the max-width of a room, and can be
   ; expressed as the product of the y-intercept and the slope.
   (define base-width (random1 ROOM-WIDTH))
-  (define y-intercept (random1 HEIGHT))
+  (define y-intercept (random 7 HEIGHT))
   (define base-y-intercept (random1 (- y-intercept 5)))
   (define (random-slope) (expt y-intercept (random 1))) ; something might be giving a negative number
   (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
@@ -365,7 +365,9 @@
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
-; In racket, the origin is at the upper left and not the center. Shapes may appear rotated or strange.
+; In racket, the origin is at the upper left and not the center.
+; The random number bug is caused by a constant definition, I think it might one of the gen-level
+; examples, caused by a triangle maybe.
 (define extriangle2
   (triangle/g (λ (x) (- x 6))
               (λ (x) (+ (- x) 12))
