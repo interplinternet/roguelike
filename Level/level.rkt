@@ -123,11 +123,7 @@
 (define (make-room a-slot name prev-name)
   (room name
         (random-shape)
-        (λ (width height) (posn width height)) ; call later when generating grid
-        ;do we create a room's position and then create a function to fit it,
-        ;or create the function and position later?
-        ; We create a function for a room, then we take the remaining grid which is not in that room,
-        ; and create new rooms from that grid?
+        (λ (width height) (posn width height))
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
 
 ; Room Slot Room -> Room
@@ -139,9 +135,8 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| Room shapes |#
-; A room's shape can be represented as a function and/or a series of constraints. Each shape consumes
-; a central point, and returns a function which takes another point and determines whether that point
-; is within the shape.
+; A room's shape can be represented as a series of inequality functions. Each shape consumes a point
+; and determines whether that point is within the shape.
 
 (define max-radius 10)
 (define max-width  10)
@@ -175,17 +170,13 @@
 ; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean]
 ; A shape consumes a number of inequalities representing lines of a geometric figure. It conjoins all
 ; functions given, then applies them to the x- and y-points of a posn.
-; Question: Are the lines given in terms of logical points, or real ones?
-; It might be a better idea to give in terms of logical points, and convert when drawn to real points.
-; That makes determining whether a cell is within a shape much simpler, because we no longer need to
-; check every point within it. It will either be within the shape, or not.
 (define ((shape . lines) point)
   [(apply conjoin lines) (posn-x point) (posn-y point)])
 
 ; Number Number Number Number -> [Posn -> Boolean]
 (define (rectangle/g left top right bottom)
   (shape (λ (x y) (>= x left))
-         (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,
+         (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,0
          (λ (x y) (<= x right))
          (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
 
@@ -204,29 +195,27 @@
 
 ; -> [Posn -> Boolean]
 (define (random-circle)
-  (define radians (random1 ROOM-WIDTH))
+  (define radians (random1 (/ ROOM-WIDTH 2)))
   (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
   (circle/g center radians))
 
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
+; A triangle's left side, if the base is on the bottom, determines whether a point is right of it
+; (beneath it). If the base is on the top, it determines if the point is on the left of it (above
+; it). Visualize.
 (define (triangle/g left right base)
-  ; this seems to work for triangles only in certain positions., swap <= and >= for inversion.
-  ; god, that's annoying.
   (shape (λ (x y) (>= y (left x))) ;(hook/dyadic <= left)
          (λ (x y) (<= y (right x)))
          (λ (x y) (<= y (base x)))))
 
 (define (random-triangle)
-  ; The width of the triangle's base can be no wider than the max-width of a room, and can be
-  ; expressed as the product of the y-intercept and the slope.
   (define base-width (random1 ROOM-WIDTH))
   (define y-intercept (random 7 HEIGHT))
-  ; the base of a triangle must be "below" the y-intercept by a reasonable amount, and because in
-  ; Racket the upper left of a screen is (0, 0), the lower points on the screen have a higher y-val.
+  ; see docs
   (define base (random y-intercept HEIGHT))
-  (define (random-slope) (expt y-intercept (random 1))) ; something might be giving a negative number
+  (define (random-slope) (expt y-intercept (random 1)))
   (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
-              (λ (x) (+ (* (random-slope) (- x)) y-intercept)) ; how do I generate a random slope?
+              (λ (x) (+ (* (random-slope) (- x)) y-intercept))
               (const base)))
 
 ;;---------------------------------------------------------------------------------------------------
