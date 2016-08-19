@@ -87,30 +87,6 @@
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
 
 ;;---------------------------------------------------------------------------------------------------
-#| Level Examples |#
-;A level could be a cyclic graph
-; However, we would have to abandon the struct form, only lists/vectors/etc. can be cyclic.
-(define cyclic-level
-  (shared ([a (list 'a dummy (posn 10 10) b c)]
-           [b (list 'b dummy (posn 10 15) a d)]
-           [c (list 'c dummy (posn 15 10) a)]
-           [d (list 'd dummy (posn 10 20) b)])
-    a))
-
-; make all rooms available globally.
-(define-values (room1 room2 room3 room4)
-  (shared ([a (list 'a dummy (posn 10 10) b c)]
-           [b (list 'b dummy (posn 10 15) a d)]
-           [c (list 'c dummy (posn 15 10) a)]
-           [d (list 'd dummy (posn 10 20) b)])
-    (values a b c d)))
-
-(define exroom (room (gensym) dummy BLANK-POSN BLANK-NEIGHBORS))
-
-; A Level is a list of nodes, the first one is the most recently created.
-(define example-level (list exroom))
-(define excell (cell (posn 10 10)))
-;;---------------------------------------------------------------------------------------------------
 #| Functions |#
 ; [Listof Room] -> [Listof Room]
 (define (new-room list-of-room)
