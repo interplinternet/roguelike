@@ -159,24 +159,6 @@
      (sqr radius))
     (not (<= (+ (sqr y) x) center)))])
 
-(define (circle-example center rad)
-  (define h (posn-x center))
-  (define k (posn-y center))
-  (λ (pos)
-    (define x (posn-x pos))
-    (define y (posn-y pos))
-    (<= (+ (sqr (- x h)) (sqr (- y k)))
-        (sqr rad))))
-
-(define (rectangle-example center width height)
-  (define h (posn-x center))
-  (define k (posn-y center))
-  (λ (pos)
-    (define x (posn-x pos))
-    (define y (posn-y pos))
-    (and (<= (- h (half-of width)) x (+ h (half-of width)))
-         (<= (- k (half-of height)) y (+ h (half-of height))))))
-
 ; Posn [Posn Posn -> Boolean] -> [Posn -> Boolean]
 ; "A shape is a central point and a series of inequalities describing its boundaries."
 ; how do we describe a dimension? How do we combine a number of dimensions with the appropriate
@@ -247,14 +229,6 @@
               (λ (x) (+ (* (random-slope) (- x)) y-intercept)) ; how do I generate a random slope?
               (const base)))
 
-; using standard graphing rules, where 0 is at the center & the top is the
-; highest value, not the lowest.
-; Posn -> Boolean
-(define extriangle
-  (triangle/g (λ (x) (+ x 2))
-              (λ (x) (+ (- x) 2))
-              (λ (x) 0)))
-
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
 ; In racket, the origin is at the upper left and not the center.
@@ -294,7 +268,6 @@
   (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN BLANK-NEIGHBORS))
               number-of-rooms))
 
-(define exlevel (self-apply new-room (list exroom) 5))
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
 
@@ -353,12 +326,12 @@
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
-(define extriangle2 ; ugh.
+(define extriangle ; ugh.
   (triangle/g (λ (x) (- x 12))
               (λ (x) (+ (- x) 12))
               (const 24)))
 
-(define tri-level (list (room (gensym) extriangle2 (posn 6 6) empty-neighborhood)))
+(define tri-level (list (room (gensym) extriangle (posn 6 6) empty-neighborhood)))
 
-(define excircle2
+(define excircle
   (circle/g (posn 6 6) 2))
