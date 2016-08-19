@@ -3,6 +3,11 @@
 (provide (all-defined-out))
 ;;---------------------------------------------------------------------------------------------------
 #| Data |#
+; Grid := [Listof Cell]
+; Cell := (cell Posn)
+; Where Posn is the anchor of the cell, in the upper left corner
+(struct cell (anchor) #:transparent) 
+
 ; A room is:
 ; (struct [Number -> Any] Number)
 (struct posn [x y] #:transparent)
@@ -104,6 +109,7 @@
 
 ; A Level is a list of nodes, the first one is the most recently created.
 (define example-level (list exroom))
+(define excell (cell (posn 10 10)))
 ;;---------------------------------------------------------------------------------------------------
 #| Functions |#
 ; [Listof Room] -> [Listof Room]
@@ -221,9 +227,9 @@
 ; Number Number Number Number -> [Posn -> Boolean]
 (define (rectangle/g left top right bottom)
   (shape (λ (x y) (>= x left))
-         (λ (x y) (<= y top))
+         (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,
          (λ (x y) (<= x right))
-         (λ (x y) (>= y bottom))))
+         (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
 
 ; -> [Posn -> Boolean]
 (define (random-rectangle)
@@ -246,20 +252,24 @@
 
 ; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
 (define (triangle/g left right base)
-  (shape (λ (x y) (<= y (left x))) ;(hook/dyadic <= left)
+  ; this seems to work for triangles only in certain positions., swap <= and >= for inversion.
+  ; god, that's annoying.
+  (shape (λ (x y) (>= y (left x))) ;(hook/dyadic <= left)
          (λ (x y) (<= y (right x)))
-         (λ (x y) (>= y (base x)))))
+         (λ (x y) (<= y (base x)))))
 
 (define (random-triangle)
   ; The width of the triangle's base can be no wider than the max-width of a room, and can be
   ; expressed as the product of the y-intercept and the slope.
   (define base-width (random1 ROOM-WIDTH))
   (define y-intercept (random 7 HEIGHT))
-  (define base-y-intercept (random1 (- y-intercept 5)))
+  ; the base of a triangle must be "below" the y-intercept by a reasonable amount, and because in
+  ; Racket the upper left of a screen is (0, 0), the lower points on the screen have a higher y-val.
+  (define base (random y-intercept HEIGHT))
   (define (random-slope) (expt y-intercept (random 1))) ; something might be giving a negative number
   (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
               (λ (x) (+ (* (random-slope) (- x)) y-intercept)) ; how do I generate a random slope?
-              (const base-y-intercept)))
+              (const base)))
 
 ; using standard graphing rules, where 0 is at the center & the top is the
 ; highest value, not the lowest.
@@ -271,13 +281,8 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
-; Grid := [Listof Cell]
-; Cell := (cell Posn)
-; Where Posn is the anchor of the cell, in the upper left corner
-(struct cell (anchor) #:transparent) ; a cell is a logical unit, it's drawing is deferred to another
-; module later on.
+; In racket, the origin is at the upper left and not the center.
 
-(define excell (cell (posn 10 10)))
 ; Level -> [List Grid Grid]
 ; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
 ; containing all "wall" cells, or those which are not in a room.
@@ -348,7 +353,7 @@
   ; Grid [Listof Image] -> Image
   (define (draw-rows a-grid images)
     (cond
-      [(empty? a-grid) (blank)]
+      [(empty? a-grid) (apply ht-append (reverse images))]
       [(= (length images) WIDTH)
        (define img-row (apply ht-append (reverse images)))
        (vl-append img-row (draw-rows a-grid '()))]
@@ -357,20 +362,27 @@
   (draw-rows grid '()))
 
 ; Cell Level -> Image
+; draws a black or white rectangle with the cell's coords overlaid on it.
 (define (white-or-black-cell a-cell level)
   (match-define (cell (posn x y)) a-cell)
   (pin-over (if (andmap (curry cell-fits? a-cell) level)
-                (rectangle CELL CELL)
-                (filled-rectangle CELL CELL))
+                (filled-rectangle CELL CELL
+                                  #:color "White"
+                                  #:border-color "Black"
+                                  #:border-width 10)
+                (filled-rectangle CELL CELL
+                                  #:color "Gainsboro"
+                                  #:border-color ""
+                                  #:border-width 10))
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
-; In racket, the origin is at the upper left and not the center.
-; The random number bug is caused by a constant definition, I think it might one of the gen-level
-; examples, caused by a triangle maybe.
-(define extriangle2
-  (triangle/g (λ (x) (- x 6))
+(define extriangle2 ; ugh.
+  (triangle/g (λ (x) (- x 12))
               (λ (x) (+ (- x) 12))
-              (const 0)))
+              (const 24)))
+
+(define tri-level (list (room (gensym) extriangle2 (posn 6 6) empty-neighborhood)))
+
 (define excircle2
   (circle/g (posn 6 6) 2))
