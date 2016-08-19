@@ -372,7 +372,7 @@
                                   #:border-width 10)
                 (filled-rectangle CELL CELL
                                   #:color "Gainsboro"
-                                  #:border-color ""
+                                  #:border-color "Black"
                                   #:border-width 10))
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
