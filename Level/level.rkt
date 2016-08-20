@@ -315,7 +315,7 @@
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
-(define extriangle ; ugh.
+(define extriangle
   (triangle/g (λ (x) (- x 12))
               (λ (x) (+ (- x) 12))
               (const 24)))
