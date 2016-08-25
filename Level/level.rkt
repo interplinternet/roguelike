@@ -84,7 +84,7 @@
 (define HEIGHT WIDTH)
 (define ROOM-WIDTH (/ WIDTH 4)) ; a room can be no larger than a quarter of the map
 (define ROOM-HEIGHT ROOM-WIDTH)
-(define CELL 200) ; a cell is 100 real units wide/high
+(define CELL 100) ; a cell is 100 real units wide/high
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
 
@@ -266,37 +266,40 @@
 (define (vl-append* images) (apply vl-append images))
 (define (ht-append* images) (apply ht-append images))
 
-; Level -> Image
-; Every cell is determined to be black or white as its being processed. Use the make-grid function
-; first, let that handle determining validity of a cell so this can focus on drawing.
-(define (draw-grid level)
-  (define grid (blank-grid WIDTH HEIGHT))
-  ; Grid [Listof Image] -> Image
-  (define (draw-rows a-grid images)
-    (cond
-      [(empty? a-grid) (ht-append* (reverse images))]
-      [(= (length images) WIDTH)
-       (define img-row (ht-append* (reverse images)))
-       (vl-append img-row (draw-rows a-grid '()))]
-      [else (draw-rows (rest a-grid) (cons (white-or-black-cell (first a-grid) level) images))]))
-  ; - IN -
-  (draw-rows grid '()))
-
-; Cell Level -> Image
-; draws a black or white rectangle with the cell's coords overlaid on it.
-(define (white-or-black-cell a-cell level)
+; Image Cell -> Image
+(define (pin-cell-coords img a-cell)
   (match-define (cell (posn x y)) a-cell)
-  (pin-over (if (andmap (curry cell-fits? a-cell) level)
-                (filled-rectangle CELL CELL
-                                  #:color "White"
-                                  #:border-color "Black"
-                                  #:border-width 10)
-                (filled-rectangle CELL CELL
-                                  #:color "Gainsboro"
-                                  #:border-color "Black"
-                                  #:border-width 10))
-            5 5
-            (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
+  (pin-over img 5 5 (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
+
+; String -> Image
+(define (color-cell color)
+  (filled-rectangle CELL CELL
+                    #:color color
+                    #:border-color "Black"
+                    #:border-width 0))
+(define black-cell
+  (color-cell "Gainsboro"))
+
+(define white-cell
+  (color-cell "White"))
+
+; Grid Grid -> image
+; Consumes two grids, one of cells which are located in rooms, and one which is not.
+(define (draw-grid a-level)
+  (define-values (in-room out-room)
+    (make-grid a-level))
+  ; - IN -
+  (lt-superimpose (draw-cells black-cell out-room)
+                  (draw-cells white-cell in-room)))
+
+; Grid -> Image
+(define (draw-cells colored-cell grid)
+  (for/fold ([backg (blank (* WIDTH CELL) (* HEIGHT CELL))])
+            ([a-cell grid])
+    (define anchor (cell-anchor a-cell))
+    (pin-over backg
+              (* (posn-x anchor) CELL) (* CELL (posn-y anchor))
+              (pin-cell-coords colored-cell a-cell))))
 
 (define excircle
   (circle/g (posn 6 6) 2))
