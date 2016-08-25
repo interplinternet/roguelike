@@ -52,7 +52,9 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| Helpers |#
+; Any -> Symbol
 (define dummy (const 'dummy))
+
 ; [X -> Y] X Number -> Y
 (define (self-apply function initial-input times-to-apply)
   (for/fold ([base initial-input])
