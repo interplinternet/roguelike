@@ -201,25 +201,6 @@
   (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
   (circle/g center radians))
 
-; [Number -> Number] [Number -> Number] [Number -> Number] -> [Posn -> Boolean]
-; A triangle's left side, if the base is on the bottom, determines whether a point is right of it
-; (beneath it). If the base is on the top, it determines if the point is on the left of it (above
-; it). Visualize.
-(define (triangle/g left right base)
-  (shape (λ (x y) (>= y (left x))) ;(hook/dyadic <= left)
-         (λ (x y) (<= y (right x)))
-         (λ (x y) (<= y (base x)))))
-
-(define (random-triangle)
-  (define base-width (random1 ROOM-WIDTH))
-  (define y-intercept (random 7 HEIGHT))
-  ; see docs
-  (define base (random y-intercept HEIGHT))
-  (define (random-slope) (expt y-intercept (random 1)))
-  (triangle/g (λ (x) (+ (* (random-slope) x) y-intercept))
-              (λ (x) (+ (* (random-slope) (- x)) y-intercept))
-              (const base)))
-
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
 ; In racket, the origin is at the upper left and not the center.
@@ -250,13 +231,13 @@
 ;-> [X -> Y]
 ; selects a random shape with random parameters within certain constraints.
 (define (random-shape)
-  (define list-of-shapes (list random-circle random-triangle random-rectangle))
+  (define list-of-shapes (list random-circle random-rectangle))
   [(list-ref list-of-shapes (random (length list-of-shapes)))])
 
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
 (define (gen-level number-of-rooms)
-  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN BLANK-NEIGHBORS))
+  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
               number-of-rooms))
 
 ;;---------------------------------------------------------------------------------------------------
@@ -286,16 +267,16 @@
 (define (ht-append* images) (apply ht-append images))
 
 ; Level -> Image
-; This is very slow. Grids are drawn incorrectly. Might be possible to fix by passing a list of lists,
-; where each list is a row.
+; Every cell is determined to be black or white as its being processed. Use the make-grid function
+; first, let that handle determining validity of a cell so this can focus on drawing.
 (define (draw-grid level)
   (define grid (blank-grid WIDTH HEIGHT))
   ; Grid [Listof Image] -> Image
   (define (draw-rows a-grid images)
     (cond
-      [(empty? a-grid) (apply ht-append (reverse images))]
+      [(empty? a-grid) (ht-append* (reverse images))]
       [(= (length images) WIDTH)
-       (define img-row (apply ht-append (reverse images)))
+       (define img-row (ht-append* (reverse images)))
        (vl-append img-row (draw-rows a-grid '()))]
       [else (draw-rows (rest a-grid) (cons (white-or-black-cell (first a-grid) level) images))]))
   ; - IN -
@@ -317,12 +298,10 @@
             5 5
             (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
-(define extriangle
-  (triangle/g (λ (x) (- x 12))
-              (λ (x) (+ (- x) 12))
-              (const 24)))
-
-(define tri-level (list (room (gensym) extriangle (posn 6 6) empty-neighborhood)))
-
 (define excircle
   (circle/g (posn 6 6) 2))
+(define circle-level (list (room (gensym) (random-circle) (posn 6 6) empty-neighborhood)))
+(define (random-level)
+  (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
+
+;(draw-grid (gen-level 2)) ; why doesn't this work? Gives a blank grid. (random-shape) works.
