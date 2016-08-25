@@ -256,10 +256,6 @@
                (posn-y center)
                (circle 10))]))
 
-; To draw a grid, first generate a blank grid. Then take every cell in the grid and color it
-; according to whether it is a member of a room in the level or not. If it is, then it's white.
-; If it's not, then it's black. Append each cell in a row horizontally, append each row vertically.
-
 ; hey here's an idea, what about "implicit cut" macro? similar to scala fancy app for racket, but
 ; using an already established srfi
 (define (star-it fn args) (apply fn args))
@@ -277,6 +273,7 @@
                     #:color color
                     #:border-color "Black"
                     #:border-width 0))
+
 (define black-cell
   (color-cell "Gainsboro"))
 
