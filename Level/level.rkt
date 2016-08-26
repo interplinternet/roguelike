@@ -125,7 +125,7 @@
 (define (make-room a-slot name prev-name)
   (room name
         (random-shape)
-        (λ (width height) (posn width height))
+        (posn 0 0)
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
 
 ; Room Slot Room -> Room
@@ -139,7 +139,6 @@
 #| Room shapes |#
 ; A room's shape can be represented as a series of inequality functions. Each shape consumes a point
 ; and determines whether that point is within the shape.
-
 (define max-radius 10)
 (define max-width  10)
 (define max-height 10)
@@ -177,18 +176,25 @@
 
 ; Number Number Number Number -> [Posn -> Boolean]
 (define (rectangle/g left top right bottom)
-  (shape (λ (x y) (>= x left))
-         (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,0
-         (λ (x y) (<= x right))
-         (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
+  (shape (λ (x y) (> right x left))
+         (λ (x y) (> bottom y top)))
+  #;(shape (λ (x y) (>= x left))
+           (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,0
+           (λ (x y) (<= x right))
+           (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
+
+(define MIN-WIDTH 4)
+(define MIN-HEIGHT 4)
 
 ; -> [Posn -> Boolean]
 (define (random-rectangle)
-  (let* ([left (random (- WIDTH ROOM-WIDTH))]
-         [right (random (add1 left) WIDTH)]
-         [top (random (- HEIGHT ROOM-HEIGHT))]
-         [bottom (random (add1 top) HEIGHT)])
-    (rectangle/g left right top bottom)))
+  ; sometimes creates rectangles that don't display.
+  (define left  (random (- WIDTH ROOM-WIDTH))); 0 < l < 18 ; move these outside the function for debugging
+  (define right (random (+ left MIN-WIDTH) (+ left ROOM-WIDTH))); 0 < r < l+2
+  (define top   (random (- HEIGHT ROOM-HEIGHT))); 0 < h < 18
+  (define bottom(random (+ top MIN-HEIGHT) (+ top ROOM-HEIGHT))); 0 < b < h+2
+  ; - IN
+  (rectangle/g left top right bottom))
 
 ; Posn Number -> [Posn -> Boolean]
 (define/match (circle/g center rad)
@@ -303,5 +309,8 @@
 (define circle-level (list (room (gensym) (random-circle) (posn 6 6) empty-neighborhood)))
 (define (random-level)
   (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
-
+;(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
+;(draw-grid r-level)
+;(define-values (i o) (make-grid r-level))
 ;(draw-grid (gen-level 2)) ; why doesn't this work? Gives a blank grid. (random-shape) works.
+
