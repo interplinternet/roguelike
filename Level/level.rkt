@@ -133,7 +133,16 @@
 (define (add-new-neighbor prev-room a-slot new-room)
   (match prev-room
     [(room name shape center neighbors)
-     (room name shape center (neighbor-update neighbors a-slot (curry cons (room-name new-room))))]))
+     (room name shape center
+           (neighbor-update neighbors (opposite-dir a-slot) (curry cons (room-name new-room))))]))
+
+; Symbol -> Symbol
+(define (opposite-dir direction)
+  (match direction
+    ['north 'south]
+    ['east 'west]
+    ['south 'north]
+    ['west 'east]))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Room shapes |#
@@ -144,6 +153,8 @@
 (define max-height 10)
 (define random1 (curry random 1)) ; 1 <= random-number <= given-number
 (define half-of (curryr / 2))
+(define MIN-WIDTH 4)
+(define MIN-HEIGHT 4)
 
 ; A crescent is all points within a function with a center at (h, k) and a radius of 5, except for
 ; those points which are to the right of...?
@@ -183,9 +194,6 @@
            (λ (x y) (<= x right))
            (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
 
-(define MIN-WIDTH 4)
-(define MIN-HEIGHT 4)
-
 ; -> [Posn -> Boolean]
 (define (random-rectangle)
   ; sometimes creates rectangles that don't display.
@@ -218,7 +226,7 @@
   (define initial-grid (blank-grid WIDTH HEIGHT))
   ; - IN -
   (partition (λ (a-cell) ; there must be a cleaner way of describing this.
-               (for/and ([a-room level])
+               (for/or ([a-room level])
                  (cell-fits? a-cell a-room)))
              initial-grid))
 
@@ -243,8 +251,11 @@
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
 (define (gen-level number-of-rooms)
-  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
-              number-of-rooms))
+  (for/fold ([level (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))])
+            ([a-room number-of-rooms])
+    (new-room level))
+  #;(self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
+                number-of-rooms))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
@@ -292,8 +303,8 @@
   (define-values (in-room out-room)
     (make-grid a-level))
   ; - IN -
-  (lt-superimpose (draw-cells black-cell out-room)
-                  (draw-cells white-cell in-room)))
+  (lt-superimpose (draw-cells (const black-cell) out-room)
+                  (draw-cells (λ (a-cell) (pin-cell-coords white-cell a-cell)) in-room)))
 
 ; Grid -> Image
 (define (draw-cells colored-cell grid)
@@ -302,15 +313,17 @@
     (define anchor (cell-anchor a-cell))
     (pin-over backg
               (* (posn-x anchor) CELL) (* CELL (posn-y anchor))
-              (pin-cell-coords colored-cell a-cell))))
+              (colored-cell a-cell))))
 
 (define excircle
   (circle/g (posn 6 6) 2))
 (define circle-level (list (room (gensym) (random-circle) (posn 6 6) empty-neighborhood)))
+
 (define (random-level)
   (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
-;(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
-;(draw-grid r-level)
+
+(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
+(draw-grid r-level)
 ;(define-values (i o) (make-grid r-level))
-;(draw-grid (gen-level 2)) ; why doesn't this work? Gives a blank grid. (random-shape) works.
+(draw-grid (gen-level 2)) ; why doesn't this work? Gives a blank grid. (random-shape) works.
 
