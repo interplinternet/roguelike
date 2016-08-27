@@ -225,7 +225,7 @@
 (define (make-grid level)
   (define initial-grid (blank-grid WIDTH HEIGHT))
   ; - IN -
-  (partition (λ (a-cell) ; there must be a cleaner way of describing this.
+  (partition (λ (a-cell)
                (for/or ([a-room level])
                  (cell-fits? a-cell a-room)))
              initial-grid))
@@ -251,11 +251,8 @@
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
 (define (gen-level number-of-rooms)
-  (for/fold ([level (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))])
-            ([a-room number-of-rooms])
-    (new-room level))
-  #;(self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
-                number-of-rooms))
+  (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
+              number-of-rooms))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
@@ -323,7 +320,6 @@
   (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
 
 (define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
-(draw-grid r-level)
+;(draw-grid r-level)
 ;(define-values (i o) (make-grid r-level))
-(draw-grid (gen-level 2)) ; why doesn't this work? Gives a blank grid. (random-shape) works.
-
+(define example-level (draw-grid (gen-level 2)))
