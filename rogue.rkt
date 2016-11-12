@@ -1,6 +1,9 @@
 #lang racket/gui
 (require pict)
 (provide (all-defined-out))
+; eventually we'll pull out the gui, pict, etc. elements. They're in here for easy testing, it's
+; easier to see how everything fits.
+
 ;;---------------------------------------------------------------------------------------------------
 #| Constants |#
 (define UNIT 18)
@@ -9,9 +12,9 @@
 (define UNITSPEED (/ WIDTH 100))
 (define FONT (make-font #:size UNIT #:family 'modern))
 
-
 (define PLAYER-IMG
   (text "@" 'modern UNIT))
+
 ;;----------------------------------------------------------------------------------------------------
 #| Structs |#
 (struct posn [x y] #:transparent)
@@ -72,10 +75,8 @@
     [(hash-has-key? item-table pos)
      (list (hash-ref item-table pos))]
     [else '()])) ; maybe #f, or '(())?
-
 ;;---------------------------------------------------------------------------------------------------
 #| Examples |#
-
 (define explayer (player 100 10 (posn 100 100) '(sword shield) '(bag bow arrow)))
 (define exmons '(orc goblin doggo))
 (define exgrid (make-grid 3 (terrain "floor")))
@@ -93,6 +94,8 @@
         (posn 3 3) `(arrow)))
 
 (define exworld (world exmonhash exitemhash exgrid))
+
+;;---------------------------------------------------------------------------------------------------
 #| MAIN |#
 ; A grid is the game-playing map, where each "cell" is one UNIT wide and tall and contains terrain
 ; information.
@@ -130,6 +133,8 @@
         [_      (posn x y)]))
     (super-new)))
 
+;;---------------------------------------------------------------------------------------------------
+#| DUMMY |#
 (define dummy-frame
   (new frame%
        [label "dummy"]
