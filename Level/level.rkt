@@ -53,7 +53,7 @@
 ;;---------------------------------------------------------------------------------------------------
 #| Helpers |#
 ; Any -> Symbol
-(define dummy (const 'dummy))
+;(define dummy (const 'dummy))
 
 ; [X -> Y] X Number -> Y
 (define (self-apply function initial-input times-to-apply)
@@ -188,11 +188,7 @@
 ; Number Number Number Number -> [Posn -> Boolean]
 (define (rectangle/g left top right bottom)
   (shape (λ (x y) (> right x left))
-         (λ (x y) (> bottom y top)))
-  #;(shape (λ (x y) (>= x left))
-           (λ (x y) (>= y top)) ; the "top" of a screen in Racket is 0,0
-           (λ (x y) (<= x right))
-           (λ (x y) (<= y bottom)))); and the "bottom" is the maximum
+         (λ (x y) (> bottom y top)))); and the "bottom" is the maximum
 
 ; -> [Posn -> Boolean]
 (define (random-rectangle)
@@ -253,6 +249,19 @@
 (define (gen-level number-of-rooms)
   (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
               number-of-rooms))
+
+;;---------------------------------------------------------------------------------------------------
+#| HALLWAYS |#
+; The original plan was to use Dijkstra's algorithm, but something similar might be: Choose the cell
+; of a room closest to a cell of the target room. Are they the same cell? If not, dig a cell in that
+; direction (i.e., such that the new cell is closer in both x- and y-dimensions). Recurse on this
+; cell.
+
+; Grid -> Grid
+; Consumes a list of cells containing all rooms and all walls. It will return a single grid of cells
+; with the appropriate terrain type. e.g., all rooms will be "floor" and all walls will be "wall"
+(define (connect-rooms rooms walls)
+  (list rooms walls))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
