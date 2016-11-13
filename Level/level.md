@@ -2,48 +2,52 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#orged35eb9">1. What is a level?</a>
+<li><a href="#org405f399">1. What is a level?</a>
 <ul>
-<li><a href="#org52db22e">1.1. Possibilities</a></li>
+<li><a href="#orgccd3b24">1.1. Possibilities</a></li>
 </ul>
 </li>
-<li><a href="#org0d52cb1">2. Map representation</a></li>
-<li><a href="#org23d8cdf">3. Room representation</a>
+<li><a href="#org203552e">2. Map representation</a></li>
+<li><a href="#orga34698a">3. Room representation</a>
 <ul>
-<li><a href="#org44954d5">3.1. Rooms</a>
+<li><a href="#org5aee67d">3.1. Rooms</a>
 <ul>
-<li><a href="#orgf2211f0">3.1.1. Generation</a></li>
+<li><a href="#org4a304b7">3.1.1. Generation</a></li>
 </ul>
 </li>
-<li><a href="#orgde7c3bf">3.2. Shapes</a>
+<li><a href="#orgb1abf53">3.2. Shapes</a>
 <ul>
-<li><a href="#org9d95740">3.2.1. Rectangles</a></li>
-<li><a href="#org90acd67">3.2.2. Circles</a></li>
-<li><a href="#org0bcfbc5">3.2.3. Triangles</a></li>
+<li><a href="#orga1f1b62">3.2.1. Rectangles</a></li>
+<li><a href="#org92dcfbe">3.2.2. Circles</a></li>
+<li><a href="#org7879a55">3.2.3. Triangles</a></li>
 </ul>
 </li>
-<li><a href="#org0e3c53e">3.3. Generating random shapes</a>
+<li><a href="#org296f47d">3.3. Generating random shapes</a>
 <ul>
-<li><a href="#org36bd347">3.3.1. Rectangles</a></li>
-<li><a href="#org384a721">3.3.2. Circles</a></li>
-<li><a href="#org3c862f5">3.3.3. Triangles</a></li>
+<li><a href="#orgd29ac17">3.3.1. Rectangles</a></li>
+<li><a href="#orgb8dd722">3.3.2. Circles</a></li>
+<li><a href="#org42a03f8">3.3.3. Triangles</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#org5b0ce7d">4. Hallways</a></li>
+<li><a href="#orgebf27c4">4. Hallways</a>
+<ul>
+<li><a href="#org256deee">4.1. New plan</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </div>
 
-<a id="orged35eb9"></a>
+<a id="org405f399"></a>
 
 # What is a level?
 
 -   [Roguelike Map Structures](http://gamedev.stackexchange.com/questions/65861/roguelike-map-structure)
 
 
-<a id="org52db22e"></a>
+<a id="orgccd3b24"></a>
 
 ## Possibilities
 
@@ -62,7 +66,7 @@
     represented as width and height, a square. (level 100 100 [Set-of Coordinates])
 
 
-<a id="org0d52cb1"></a>
+<a id="org203552e"></a>
 
 # Map representation
 
@@ -77,14 +81,14 @@
         instead of having them stored on the top-level.
 
 
-<a id="org23d8cdf"></a>
+<a id="orga34698a"></a>
 
 # Room representation
 
 A room has a name, a shape, a center, and 4 neighbors (1 in each cardinal direction).
 
 
-<a id="org44954d5"></a>
+<a id="org5aee67d"></a>
 
 ## Rooms
 
@@ -101,7 +105,7 @@ height variable, so it can be called later when generating a grid. This is more 
 placeholder than anything. The two options are given above.
 
 
-<a id="orgf2211f0"></a>
+<a id="org4a304b7"></a>
 
 ### Generation
 
@@ -109,7 +113,7 @@ Option: We create a function for a room, then we take the remaining grid which i
 within that function's codomain, and create new rooms from that grid recursively.
 
 
-<a id="orgde7c3bf"></a>
+<a id="orgb1abf53"></a>
 
 ## Shapes
 
@@ -136,7 +140,7 @@ which there may be one or multiple. Shapes are defined in terms of logical cells
     font-rendering works. This is what I was thinking of before.
 
 
-<a id="org9d95740"></a>
+<a id="orga1f1b62"></a>
 
 ### Rectangles
 
@@ -145,14 +149,14 @@ Four lines, determining that a point is right of its left side, left of its righ
 left, for a point to be "above" the bottom it must have a lower y-value.
 
 
-<a id="org90acd67"></a>
+<a id="org92dcfbe"></a>
 
 ### Circles
 
 A circle is a single line, and determines that any point is within a radius of a central point.
 
 
-<a id="org0bcfbc5"></a>
+<a id="org7879a55"></a>
 
 ### Triangles
 
@@ -174,12 +178,12 @@ If a triangle's base is on the top, then:
 -   Base side determines whether a point is below it (y ≥ (f x))
 
 
-<a id="org0e3c53e"></a>
+<a id="org296f47d"></a>
 
 ## Generating random shapes
 
 
-<a id="org36bd347"></a>
+<a id="orgd29ac17"></a>
 
 ### Rectangles
 
@@ -189,7 +193,7 @@ number between 1 + left and WIDTH, the top is between 0 and HEIGHT - ROOM-HEIGHT
 the bottom is a random number between 1 + top and the maximum height at the bottom of the screen.
 
 
-<a id="org384a721"></a>
+<a id="orgb8dd722"></a>
 
 ### Circles
 
@@ -197,7 +201,7 @@ Generate a random number from half the maximum width for the radius, then define
 which has two random points between the radius and the WIDTH minus the radius.
 
 
-<a id="org3c862f5"></a>
+<a id="org42a03f8"></a>
 
 ### Triangles
 
@@ -214,7 +218,7 @@ adds it to the y-intercept for usual mx+b form. The 2nd is similar, but x is neg
 last is the base, which is a constant function which always returns the base (flat line).
 
 
-<a id="org5b0ce7d"></a>
+<a id="orgebf27c4"></a>
 
 # Hallways
 
@@ -228,8 +232,26 @@ Maybe we can generate hallways using a version of Dijkstra's algorithm.
     which does not intersect with an outer room's (a node) function.
     -   We can take the inverse of the graph of rooms to find all cells which are hallways.
 
-; First we create a graph where each room is a node. Then we create a grid whose dimensions can
-; contain every room. The grid can be represented as a graph where every cell is a node with an edge
-; in every cardinal direction. Then we take a subset of that graph representing every cell which is
-; not covered by a room.
+
+<a id="org256deee"></a>
+
+## New plan
+
+The original plan was to use Dijkstra's algorithm, but something similar might be:
+
+1.  Choose the cell of a room closest to a cell of the target room.
+2.  Are they the same cell?
+3.  If not, dig a cell in that direction (i.e., such that the new cell is closer in
+    both x- and y-dimensions).
+4.  Recurse on this cell.
+
+Are intersections between rooms okay? I don't know. On the one hand, sure, it can
+create a more dynamic space for the player to play in. On the other hand, it could lead
+to some weird or dumb mistakes. I'll allow intersections for now, because it's easier
+to write.
+
+First we create a graph where each room is a node. Then we create a grid whose dimensions
+  can contain every room. The grid can be represented as a graph where every cell is a
+  node with an edge in every cardinal direction. Then we take a subset of that graph
+  representing every cell which is not covered by a room.
 
