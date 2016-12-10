@@ -2,52 +2,64 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents">
 <ul>
-<li><a href="#org405f399">1. What is a level?</a>
+<li><a href="#org7d15645">1. What is a level?</a>
 <ul>
-<li><a href="#orgccd3b24">1.1. Possibilities</a></li>
+<li><a href="#org2dd1c93">1.1. Possibilities</a></li>
 </ul>
 </li>
-<li><a href="#org203552e">2. Map representation</a></li>
-<li><a href="#orga34698a">3. Room representation</a>
+<li><a href="#org1393d20">2. Map representation</a></li>
+<li><a href="#org18374e1">3. Room representation</a>
 <ul>
-<li><a href="#org5aee67d">3.1. Rooms</a>
+<li><a href="#org8f15750">3.1. Rooms</a>
 <ul>
-<li><a href="#org4a304b7">3.1.1. Generation</a></li>
+<li><a href="#orgdff7117">3.1.1. Generation</a></li>
 </ul>
 </li>
-<li><a href="#orgb1abf53">3.2. Shapes</a>
+<li><a href="#orgd272c4d">3.2. Shapes</a>
 <ul>
-<li><a href="#orga1f1b62">3.2.1. Rectangles</a></li>
-<li><a href="#org92dcfbe">3.2.2. Circles</a></li>
-<li><a href="#org7879a55">3.2.3. Triangles</a></li>
+<li><a href="#orgd5055de">3.2.1. Rectangles</a></li>
+<li><a href="#org92656d2">3.2.2. Circles</a></li>
+<li><a href="#org3ee1d46">3.2.3. Triangles</a></li>
 </ul>
 </li>
-<li><a href="#org296f47d">3.3. Generating random shapes</a>
+<li><a href="#org9a5976c">3.3. Generating random shapes</a>
 <ul>
-<li><a href="#orgd29ac17">3.3.1. Rectangles</a></li>
-<li><a href="#orgb8dd722">3.3.2. Circles</a></li>
-<li><a href="#org42a03f8">3.3.3. Triangles</a></li>
+<li><a href="#org79a66c6">3.3.1. Rectangles</a></li>
+<li><a href="#org2ea3254">3.3.2. Circles</a></li>
+<li><a href="#org56c628e">3.3.3. Triangles</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orgebf27c4">4. Hallways</a>
+<li><a href="#org93b4042">4. Level generation</a>
 <ul>
-<li><a href="#org256deee">4.1. New plan</a></li>
+<li><a href="#org13af61f">4.1. Graph</a></li>
+<li><a href="#orgae7dac4">4.2. Shapes</a></li>
+<li><a href="#org2940ee9">4.3. Grid</a></li>
+</ul>
+</li>
+<li><a href="#org975a8e5">5. Hallways</a>
+<ul>
+<li><a href="#org39805ec">5.1. New plan</a></li>
+<li><a href="#orga76e77a">5.2. Connect</a>
+<ul>
+<li><a href="#orga520a66">5.2.1. Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
 </div>
 </div>
 
-<a id="org405f399"></a>
+<a id="org7d15645"></a>
 
 # What is a level?
 
 -   [Roguelike Map Structures](http://gamedev.stackexchange.com/questions/65861/roguelike-map-structure)
 
 
-<a id="orgccd3b24"></a>
+<a id="org2dd1c93"></a>
 
 ## Possibilities
 
@@ -66,7 +78,7 @@
     represented as width and height, a square. (level 100 100 [Set-of Coordinates])
 
 
-<a id="org203552e"></a>
+<a id="org1393d20"></a>
 
 # Map representation
 
@@ -81,14 +93,14 @@
         instead of having them stored on the top-level.
 
 
-<a id="orga34698a"></a>
+<a id="org18374e1"></a>
 
 # Room representation
 
 A room has a name, a shape, a center, and 4 neighbors (1 in each cardinal direction).
 
 
-<a id="org5aee67d"></a>
+<a id="org8f15750"></a>
 
 ## Rooms
 
@@ -105,7 +117,7 @@ height variable, so it can be called later when generating a grid. This is more 
 placeholder than anything. The two options are given above.
 
 
-<a id="org4a304b7"></a>
+<a id="orgdff7117"></a>
 
 ### Generation
 
@@ -113,7 +125,7 @@ Option: We create a function for a room, then we take the remaining grid which i
 within that function's codomain, and create new rooms from that grid recursively.
 
 
-<a id="orgb1abf53"></a>
+<a id="orgd272c4d"></a>
 
 ## Shapes
 
@@ -140,7 +152,7 @@ which there may be one or multiple. Shapes are defined in terms of logical cells
     font-rendering works. This is what I was thinking of before.
 
 
-<a id="orga1f1b62"></a>
+<a id="orgd5055de"></a>
 
 ### Rectangles
 
@@ -149,14 +161,14 @@ Four lines, determining that a point is right of its left side, left of its righ
 left, for a point to be "above" the bottom it must have a lower y-value.
 
 
-<a id="org92dcfbe"></a>
+<a id="org92656d2"></a>
 
 ### Circles
 
 A circle is a single line, and determines that any point is within a radius of a central point.
 
 
-<a id="org7879a55"></a>
+<a id="org3ee1d46"></a>
 
 ### Triangles
 
@@ -178,12 +190,12 @@ If a triangle's base is on the top, then:
 -   Base side determines whether a point is below it (y ≥ (f x))
 
 
-<a id="org296f47d"></a>
+<a id="org9a5976c"></a>
 
 ## Generating random shapes
 
 
-<a id="orgd29ac17"></a>
+<a id="org79a66c6"></a>
 
 ### Rectangles
 
@@ -193,7 +205,7 @@ number between 1 + left and WIDTH, the top is between 0 and HEIGHT - ROOM-HEIGHT
 the bottom is a random number between 1 + top and the maximum height at the bottom of the screen.
 
 
-<a id="orgb8dd722"></a>
+<a id="org2ea3254"></a>
 
 ### Circles
 
@@ -201,7 +213,7 @@ Generate a random number from half the maximum width for the radius, then define
 which has two random points between the radius and the WIDTH minus the radius.
 
 
-<a id="org42a03f8"></a>
+<a id="org56c628e"></a>
 
 ### Triangles
 
@@ -218,7 +230,42 @@ adds it to the y-intercept for usual mx+b form. The 2nd is similar, but x is neg
 last is the base, which is a constant function which always returns the base (flat line).
 
 
-<a id="orgebf27c4"></a>
+<a id="org93b4042"></a>
+
+# Level generation
+
+A level is generated by walking down a ladder of abstraction. 
+
+
+<a id="org13af61f"></a>
+
+## Graph
+
+A level at its most abstract is a graph. So to generate a level we generate a random
+graph with connected nodes.
+
+
+<a id="orgae7dac4"></a>
+
+## Shapes
+
+We ask, what is a level? A level is a series of shapes. So we assign every node a
+series of shapes and a location on an absolute grid and name them for convenience.
+
+
+<a id="org2940ee9"></a>
+
+## Grid
+
+Finally, a level is just a grid where some cells are floors and some are walls. We
+overlay grid on the series of shapes and all the cells that fall through are the floor
+and all those that don't are the walls. You can also think of it as "punching-out" the
+rooms in the grid. As we punch out every room, we determine a path on the grid to its
+neighbor and punch that out too. Then that new grid is used as the base grid for the
+next recursion as we punch out the neighbor.
+
+
+<a id="org975a8e5"></a>
 
 # Hallways
 
@@ -226,14 +273,14 @@ Maybe we can generate hallways using a version of Dijkstra's algorithm.
 
 1.  We create all rooms and attach functions & constraints representing shapes to each room.
 2.  Then we arrange all rooms in a grid such that no function's codomain overlaps another function's.
-3.  Then we let every cell in the grid representa node of a graph which has neighbors in every cardinal
+3.  Then we let every cell in the grid represent a node of a graph which has neighbors in every cardinal
     direction.
 4.  Then we generate hallways between connected rooms by finding the shortest path through each cell
     which does not intersect with an outer room's (a node) function.
     -   We can take the inverse of the graph of rooms to find all cells which are hallways.
 
 
-<a id="org256deee"></a>
+<a id="org39805ec"></a>
 
 ## New plan
 
@@ -254,4 +301,29 @@ First we create a graph where each room is a node. Then we create a grid whose d
   can contain every room. The grid can be represented as a graph where every cell is a
   node with an edge in every cardinal direction. Then we take a subset of that graph
   representing every cell which is not covered by a room.
+
+
+<a id="orga76e77a"></a>
+
+## Connect
+
+A cell has some x- & y-value representing its absolute coordinates on the grid, and so
+does the target cell. In the coordinate system, the upper-left is 0, 0 and cells
+increase in downwards and rightwards such that the bottom-right is (n, m) where n and m
+are the furthest coordinates possible. We want to find a path from the home cell to the
+target cell. Orthogonal to the home cell are its immediate neighbors (we do not
+consider diagonal paths). If the target cell is not the home cell it must necessarily
+be closer to the home-cells: left, right, upper, or bottom cell. Select all cells
+immediately orthogonal to the home-cell. If one of them is not the target cell, sum
+their coordinates and select the cell whose sum is closest to the sum of the target
+cell. If there are multiple options, select one randomly and recurse with that as the
+home-cell.
+
+
+<a id="orga520a66"></a>
+
+### Example
+
+The home-cell is at (1, 2) in a grid of 5 by 5 cells. The target cell is (4, 0) in
+the upper-right.
 
