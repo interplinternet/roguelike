@@ -30,18 +30,13 @@
 (define (pos->dir pos)
   (list-ref '(north east south west) pos))
 
-; The neighbors of a room are represented with a single vector, which we treat as a structure.
+; The neighbors of a room are represented with a single list, which we treat as a structure.
 (define-values (neighbor neighbor-north neighbor-east neighbor-south neighbor-west)
   (values (λ (north east south west) (list north east south west))
           first
           second
           third
-          fourth)
-  #;(values (λ (north east south west) (vector north east south west))
-            (λ (a-vector) (vector-ref a-vector 0))
-            (λ (a-vector) (vector-ref a-vector 1))
-            (λ (a-vector) (vector-ref a-vector 2))
-            (λ (a-vector) (vector-ref a-vector 3))))
+          fourth))
 
 ; Functional setting, updating, and an empty neighborhood.
 (define-values (neighbor-set neighbor-update empty-neighborhood)
@@ -49,22 +44,13 @@
             (list-set neighborhood (dir->pos direction) value))
           (λ (neighborhood direction updater)
             (list-update neighborhood (dir->pos direction) updater))
-          '(() () () ()))
-  #;(values (λ (vec direction val)
-              (define pos (dir->pos direction))
-              (for/vector ([(elem indx) (in-indexed (in-vector vec))])
-                (if (= indx pos) val elem)))
-            (λ (vec direction updater)
-              (define pos (dir->pos direction))
-              (for/vector ([(elem indx) (in-indexed (in-vector vec))])
-                (if (= indx pos) (updater elem) elem)))
-            #(() () () ())))
+          '()))
 
 (define (select-room name level)
   (first (memf (λ (a-room) (symbol=? (room-name a-room) name)) level)))
 
-; A Level is [Listof Room]
-; A Room is (room Symbol [X -> Y] Posn Level)
+; A Level is [List Room Room Room Room] or [Empty]
+; A Room is (room Symbol [X -> Y] Posn Level) such that level has no more than 4 rooms.
 
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#

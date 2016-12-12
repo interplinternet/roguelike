@@ -13,6 +13,10 @@
     [(empty? list-of-room)
      (list (random-room))]
     [else (define first-room (first list-of-room))
+          ; this will need to be refactored with our new room representation
+          ; Neighbors are no longer a list of slots, which may be empty, and represent NESW,
+          ; They're just a list of up to four rooms with no regard for cardinal direction. This will
+          ; simplify things a lot.
           (define random-slot (select-random-slot (valid-slots first-room)));-> N, E, S, W
           (define new-room (make-room random-slot new-name (room-name first-room)))
           (list* new-room
