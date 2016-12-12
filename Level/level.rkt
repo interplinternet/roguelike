@@ -1,129 +1,33 @@
 #lang racket
-(require racket/shared pict racket/trace)
+(require "data.rkt" "shapes.rkt" "helpers.rkt" racket/shared pict racket/trace rackunit)
 (provide (all-defined-out))
-;;---------------------------------------------------------------------------------------------------
-#| Data |#
-; Grid := [Listof Cell]
-; Cell := (cell Posn)
-; Where Posn is the anchor of the cell, in the upper left corner
-(struct cell (anchor) #:transparent) 
-
-; A room is:
-; (struct [Number -> Any] Number)
-(struct posn [x y] #:transparent)
-
-; A Room is:
-(struct room [name function anchor neighbors] #:transparent)
-; (room Symbol [Posn -> Any] Posn [Listof Symbol])
-; The function determines the shape of the room, and
-; the anchor is the location of its central point in the level. Neighbors field is a list of symbols
-; representing the names of all of its neighbors. -- A room is really a node in a graph.
-
-; Symbol -> Number
-; takes a symbol representing a cardinal direction and returns the appropriate index of a vector.
-(define/match (dir->pos direction)
-  [('north) 0]
-  [('east)  1]
-  [('south) 2]
-  [('west)  3])
-
-; The neighbors of a room are represented with a single vector, which we treat as a structure.
-(define-values (neighbor neighbor-north neighbor-east neighbor-south neighbor-west)
-  (values (λ (north east south west) (vector north east south west))
-          (λ (a-vector) (vector-ref a-vector 0))
-          (λ (a-vector) (vector-ref a-vector 1))
-          (λ (a-vector) (vector-ref a-vector 2))
-          (λ (a-vector) (vector-ref a-vector 3))))
-
-; Functional setting, updating, and an empty neighborhood.
-(define-values (neighbor-set neighbor-update empty-neighborhood)
-  (values (λ (vec direction val)
-            (define pos (dir->pos direction))
-            (for/vector ([(elem indx) (in-indexed (in-vector vec))])
-              (if (= indx pos) val elem)))
-          (λ (vec direction updater)
-            (define pos (dir->pos direction))
-            (for/vector ([(elem indx) (in-indexed (in-vector vec))])
-              (if (= indx pos) (updater elem) elem)))
-          #(() () () ())))
-
-(define (select-room name level)
-  (memf (λ (a-room) (symbol=? (room-name a-room) name)) level))
-
-; A Level is [Listof Room]
-; A Room is (room Symbol [X -> Y] Posn Level)
-
-;;---------------------------------------------------------------------------------------------------
-#| Helpers |#
-; Any -> Symbol
-;(define dummy (const 'dummy))
-
-; [X -> Y] X Number -> Y
-(define (self-apply function initial-input times-to-apply)
-  (for/fold ([base initial-input])
-            ([n (in-range times-to-apply)])
-    (function base)))
-
-; [X Y -> Z] [N -> M] -> Z
-(define ((hook1 f1 f2) arg)
-  (f1 arg (f2 arg)))
-
-(define ((hook f1 f2) . args)
-  (apply f1 (append args ; previously cons (apply f2 args) args, but I like right->left
-                    (list (apply f2 args)))))
-
-(define ((hook/dyadic f1 f2) arg1 arg2) ; how could I make this variadic?
-  (f1 arg1 (f2 arg2)))
-
-(define ((fork head . fns) arg)
-  (apply head (map (λ (fn) (fn arg)) fns)))
-
-(define ((fork1 f1 f2 f3) arg)
-  (f1 (f2 arg) (f3 arg)))
-
-; List -> X
-(define (select-random l)
-  (list-ref l (random (length l))))
-
-;;---------------------------------------------------------------------------------------------------
-#| CONSTANTS |#
-(define WIDTH 24) ; the width of a level is 100 logical cells
-(define HEIGHT WIDTH)
-(define ROOM-WIDTH (/ WIDTH 4)) ; a room can be no larger than a quarter of the map
-(define ROOM-HEIGHT ROOM-WIDTH)
-(define CELL 100) ; a cell is 100 real units wide/high
-(define BLANK-POSN (posn 0 0))
-(define BLANK-NEIGHBORS (neighbor '() '() '() '()))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Functions |#
 ; [Listof Room] -> [Listof Room]
-(define (new-room list-of-room)
+(define (new-room [list-of-room '()])
   ; To add a new room, we select a random one from a list of valid rooms. Then we cons it onto the
   ; list of rooms. The new room lists its previous room as a neighbor.
-  (define prev-room (first list-of-room))
   (define new-name (gensym))
-  (define random-slot (select-random-slot (valid-slots prev-room)));-> North, east, south, west
-  ;we only pass the name of the previous room, not the entire previous room for now.
-  (define new-room (make-room random-slot new-name (room-name prev-room)))
-  (cons new-room (cons
-                  (add-new-neighbor prev-room random-slot new-room)
-                  (rest list-of-room))))
+  (cond
+    [(empty? list-of-room)
+     (list (random-room))]
+    [else (define first-room (first list-of-room))
+          (define random-slot (select-random-slot (valid-slots first-room)));-> N, E, S, W
+          (define new-room (make-room random-slot new-name (room-name first-room)))
+          (list* new-room
+                 (add-new-neighbor first-room random-slot new-room)
+                 (rest list-of-room))]))
 
 ; Room -> [Listof Room]
 ; We take a room's shape and center, and remove all directions which would lead outside the bounds.
 (define (valid-slots a-room)
   (define nbors (room-neighbors a-room))
-  (match nbors
-    [(vector n e s w) (list n e s w)]))
+  nbors)
 
 ; [Listof Room] -> Room
 (define (select-random-slot nbors)
-  (match (random (length nbors))
-    [0 'north]
-    [1 'east]
-    [2 'south]
-    [3 'west]))
+  (select-random '(north east south west)))
 
 ; Slot Symbol Room -> Room
 ; consumes a slot, a name, and the last room made.
@@ -132,7 +36,9 @@
 (define (make-room a-slot name prev-name)
   (room name
         (random-shape)
-        (posn 0 0)
+        ; does this bit even matter? NESW slots and posn have no correlation, even if a room is "east"
+        ; of another, it may not necessarily be to the east of it on the grid.
+        (posn (random WIDTH) (random HEIGHT))
         (neighbor-set empty-neighborhood a-slot (list prev-name))))
 
 ; Room Slot Room -> Room
@@ -147,85 +53,25 @@
 (define (opposite-dir direction)
   (match direction
     ['north 'south]
-    ['east 'west]
+    ['east  'west]
     ['south 'north]
-    ['west 'east]))
+    ['west  'east]))
 
-;;---------------------------------------------------------------------------------------------------
-#| Room shapes |#
-; A room's shape can be represented as a series of inequality functions. Each shape consumes a point
-; and determines whether that point is within the shape.
-(define max-radius 10)
-(define max-width  10)
-(define max-height 10)
-(define random1 (curry random 1)) ; 1 <= random-number <= given-number
-(define half-of (curryr / 2))
-(define MIN-WIDTH 4)
-(define MIN-HEIGHT 4)
-
-; A crescent is all points within a function with a center at (h, k) and a radius of 5, except for
-; those points which are to the right of...?
-(define/match ((crescent center rad) pos)
-  [((posn h k) radius (posn x y))
-   (and
-    (<=
-     (+ (sqr (- x h)) (sqr (- y k)))
-     (sqr radius))
-    (not (<= (+ (sqr y) x) center)))])
-
-; Posn [Posn Posn -> Boolean] -> [Posn -> Boolean]
-; "A shape is a central point and a series of inequalities describing its boundaries."
-; how do we describe a dimension? How do we combine a number of dimensions with the appropriate
-; inequalities? 
-; each inequality is a function taking an x- or y- value to calculate
-; slot the x- and y- values into each inequality and determine if it's true or not.
-; A line is an inequality which determines whether a point is on some side of it.
-
-; [Number Number -> Boolean] [Number -> Boolean] -> Posn -> Boolean
-(define ((line oper function) point)
-  (oper (posn-y point) (function (posn-x point))))
-; ((hook/dyadic oper function) posn-y posn-x)
-
-; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean]
-; A shape consumes a number of inequalities representing lines of a geometric figure. It conjoins all
-; functions given, then applies them to the x- and y-points of a posn.
-(define ((shape . lines) point)
-  [(apply conjoin lines) (posn-x point) (posn-y point)])
-
-; Number Number Number Number -> [Posn -> Boolean]
-(define (rectangle/g left top right bottom)
-  (shape (λ (x y) (> right x left))
-         (λ (x y) (> bottom y top)))); and the "bottom" is the maximum
-
-; -> [Posn -> Boolean]
-(define (random-rectangle)
-  ; sometimes creates rectangles that don't display.
-  (define left  (random (- WIDTH ROOM-WIDTH))); 0 < l < 18 ; move these outside the function for debugging
-  (define right (random (+ left MIN-WIDTH) (+ left ROOM-WIDTH))); 0 < r < l+2
-  (define top   (random (- HEIGHT ROOM-HEIGHT))); 0 < h < 18
-  (define bottom(random (+ top MIN-HEIGHT) (+ top ROOM-HEIGHT))); 0 < b < h+2
-  ; - IN
-  (rectangle/g left top right bottom))
-
-; Posn Number -> [Posn -> Boolean]
-(define/match (circle/g center rad)
-  [((posn h k) rad)
-   (shape (λ (x y) (<= (+ (sqr (- x h)) (sqr (- y k))) (sqr rad))))])
-
-; -> [Posn -> Boolean]
-(define (random-circle)
-  (define radians (random1 (/ ROOM-WIDTH 2)))
-  (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
-  (circle/g center radians))
-
+(define (random-room)
+  (room (gensym) (random-shape) (posn (random WIDTH) (random HEIGHT)) empty-neighborhood))
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
 ; In racket, the origin is at the upper left and not the center.
-
+(define excircle
+  (circle/g (posn 6 6) 2))
+(define excircle2
+  (circle/g (posn 10 10) 2))
+(define circle-level (list (room 'alpha excircle (posn 6 6) '(() (beta) () ()))
+                           (room 'beta excircle2 (posn 10 10) '(() () () (alpha)))))
 ; Level -> [List Grid Grid]
 ; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
 ; containing all "wall" cells, or those which are not in a room.
-(define (make-grid level)
+(define (make-grid2 level)
   (define initial-grid (blank-grid WIDTH HEIGHT))
   ; - IN -
   (partition (λ (a-cell)
@@ -237,53 +83,73 @@
 ; Consumes a level representation and returns 2 grids: one containing floor cells and one containing
 ; wall cells. Take all the cells in the grid that are in the first room, and connect them to the last
 ; existing room and then recurse.
-(define (make-grid2 level0)
+(define (make-grid3 level0)
   (define initial-grid (blank-grid WIDTH HEIGHT))
   (define start (first level0))
   (define seen '())
   ; - IN -
-  (walk-and-connect start initial-grid seen))
+  (walk-and-connect start initial-grid (cons start seen)))
 
-; Room Grid [Listof Room] -> Grid
-(define (walk-and-connect home-room grid seen-so-far)
-  (define room-grid (punch-through room grid))
-  (define neighbors (room-neighbors home-room))
-  (define start (select-random room-grid))
 
-  (define (walk-and-connect/h nbors)
-    (cond
-      [(empty? nbors) room-grid]
-      [(member (room-name (first nbors)) seen-so-far) (walk-and-connect/h (rest nbors))]
-      [else 
-       (walk-and-connect home-room
-                         (walk-and-connect (first nbors) (connect room-grid start (first nbors) grid)
-                                           (cons (room-name start) seen-so-far)))]))
-  ; - IN -
-  (walk-and-connect/h neighbors))
+; Level -> Grid
+(define/contract (make-grid level0)
+  ((listof room?) . -> . (listof cell?))
+  (define initial-grid (blank-grid WIDTH HEIGHT))
+  (walk-and-connect/level level0 initial-grid))
+
+; Level Grid-> Grid
+(define/contract (walk-and-connect/level level grid)
+  ((listof room?) (listof cell?) . -> . (listof cell?))
+  (foldr (λ (a-room rest-of-level)
+           (walk-and-connect a-room rest-of-level level (room-neighbors a-room) (list a-room)))
+         grid
+         level))
+
+(define (room-or-empty? x) (or (room? x) (empty? x)))
+
+; Room Grid [Listof Room] Level [Listof Room] -> Grid
+; only return connected rooms and hallways, don't worry about walls for now.
+(define/contract (walk-and-connect home-room grid neighbors0 level seen)
+  (room? (listof cell?) (listof room?) (listof room-or-empty?) (listof room-or-empty?) . -> . (listof cell?))
+  (define room-grid (punch-through home-room grid))
+  (define start-cell (select-random room-grid))
+  (define neighbors (remove* seen (remove* '(()) neighbors0)
+                             (λ (seens nbors) (equal? seens (first nbors)))))
+  (cond
+    [(empty? neighbors) room-grid]
+    [else
+     (define first-n (select-room (first (first neighbors)) level))
+     (define new-grid0 (connect room-grid (and (cell? start-cell) start-cell) first-n grid seen))
+     (define new-grid (walk-and-connect first-n
+                                        new-grid0
+                                        (room-neighbors first-n)
+                                        (cons first-n seen)))
+     (walk-and-connect home-room new-grid (rest neighbors) (cons (room-name first-n) seen))]))
+
+; Grid Cell Room  Grid -> Grid
+; Connects a grid representing one room to one neighbor and returns a new grid
+(define/contract (connect a-room closest-cell neighbor grid [path '()])
+  (((listof cell?) cell? room? (listof cell?)) ((listof symbol?)) . ->* . (listof cell?))
+  (define neighbor-grid (punch-through neighbor grid))
+  (cond[(inside? closest-cell neighbor-grid) (append path grid)]
+       [else (define new-closest-cell (pick-closest closest-cell neighbor-grid grid) )
+             (connect a-room new-closest-cell ;ugh
+                      neighbor grid (cons (room-name a-room) path))]))
 
 ; Room Grid -> Grid
-(define (punch-through room grid)
-  (filter (λ (a-cell) (cell-fits? a-cell room)) grid))
-
-; Grid Cell [Listof Room] Grid -> Grid
-; Connects a grid representing one room to one neighbor and returns a new grid
-(define (connect room closest-cell neighbor grid [path '()])
-  (define neighbor-grid (punch-through neighbor grid))
-  (match-define (list floors walls) grid)
-  (if (inside? closest-cell neighbor)
-      ; careful about removing the path from the grid!
-      ; if another path would normally intersect the pathfinding will fail because there are no squares to select
-      (cons (append path floors) (remove* path grid))
-      (connect room (cons (pick-closest closest-cell neighbor grid) path) grid)))
+(define (punch-through a-room grid)
+  (filter (λ (a-cell) (cell-fits? a-cell a-room)) grid))
 
 ; Cell Grid -> Boolean
-(define (inside? cell grid)
-  (member cell grid))
+(define/contract (inside? a-cell grid)
+  (cell? (listof cell?) . -> . boolean?)
+  (and (cell? a-cell) (member a-cell grid)))
 
 ; Cell Grid Grid -> Cell
-(define (pick-closest cell target grid)
+(define (pick-closest a-cell target-grid grid)
+  (define target (select-random target-grid))
   (define target-sum (sum-coords target))
-  (define surroundings (orthogonal-cells cell grid))
+  (define surroundings (orthogonal-cells a-cell grid))
   (argmin (λ (cell-sum) (abs (- cell-sum target-sum))) (map sum-coords surroundings)))
 
 ; Cell -> Number
@@ -292,23 +158,19 @@
     [(cell (posn x y)) (+ x y)]))
 
 ; Cell Grid -> Grid
-(define (orthogonal-cells cell grid)
-  (define cell-coords (cell-anchor cell))
-  (define x (posn-x cell-coords))
-  (define y (posn-y cell-coords))
+(define (orthogonal-cells a-cell grid)
+  (match-define (cell (posn x y)) a-cell)
   ; it will be better to select cells by their coordinate, but for now since cells contain
   ; no information it's fine to just "recreate" them
-  (define list-of-orthocells
-    (list (posn (sub1 x) (sub1 y)) ; upper-left
-          (posn x (sub1 y)) ; above
-          (posn (add1 x) (sub1 y)) ; upper-right
-          (posn (sub1 x) y) ; left
-          (posn (add1 x) y) ; right
-          (posn (sub1 x) (add1 y)) ; lower-left
-          (posn x (add1 y)) ; below
-          (posn (add1 x) (add1 y)))); lower-right
-  ; - IN -
-  (map (λ (pos) (cell pos)) list-of-orthocells))
+  (map (λ (pos) (cell pos))
+       (list (posn (sub1 x) (sub1 y)) ; upper-left
+             (posn x (sub1 y)) ; above
+             (posn (add1 x) (sub1 y)) ; upper-right
+             (posn (sub1 x) y) ; left
+             (posn (add1 x) y) ; right
+             (posn (sub1 x) (add1 y)) ; lower-left
+             (posn x (add1 y)) ; below
+             (posn (add1 x) (add1 y))))); lower-right
 
 ; Cell Room -> Boolean
 (define (cell-fits? a-cell a-room)
@@ -337,9 +199,10 @@
 ;;---------------------------------------------------------------------------------------------------
 #| HALLWAYS |#
 (define ex-level (make-level 5))
-(define ex-grid
-  (let-values ([(rooms walls) (make-grid ex-level)])
-    (list rooms walls)))
+#;(define ex-grid
+    (let-values ([(rooms walls) (make-grid ex-level)]) ; causing bug room-name: contract violation
+      ; expected: room? given: '()
+      (list rooms walls)))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
@@ -399,13 +262,11 @@
               (* (posn-x anchor) CELL) (* CELL (posn-y anchor))
               (colored-cell a-cell))))
 
-(define excircle
-  (circle/g (posn 6 6) 2))
-(define circle-level (list (room (gensym) (random-circle) (posn 6 6) empty-neighborhood)))
 
-(define (random-level)
-  (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
 
-(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
+#;(define (random-level)
+    (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
 
-(define example-level (draw-grid (make-level 2)))
+;(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
+
+;(define example-level (draw-grid (make-level 2)))

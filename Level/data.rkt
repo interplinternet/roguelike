@@ -26,6 +26,10 @@
   [('south) 2]
   [('west)  3])
 
+; Number -> Symbol
+(define (pos->dir pos)
+  (list-ref '(north east south west) pos))
+
 ; The neighbors of a room are represented with a single vector, which we treat as a structure.
 (define-values (neighbor neighbor-north neighbor-east neighbor-south neighbor-west)
   (values (λ (north east south west) (list north east south west))
@@ -57,7 +61,7 @@
             #(() () () ())))
 
 (define (select-room name level)
-  (memf (λ (a-room) (symbol=? (room-name a-room) name)) level))
+  (first (memf (λ (a-room) (symbol=? (room-name a-room) name)) level)))
 
 ; A Level is [Listof Room]
 ; A Room is (room Symbol [X -> Y] Posn Level)
