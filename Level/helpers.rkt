@@ -27,7 +27,3 @@
 
 (define ((fork1 f1 f2 f3) arg)
   (f1 (f2 arg) (f3 arg)))
-
-; List -> X
-(define (select-random l)
-  (list-ref l (random (length l))))
