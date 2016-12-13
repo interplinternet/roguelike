@@ -1,5 +1,23 @@
 #lang racket
-(provide (all-defined-out))
+;(provide (all-defined-out))
+(provide (contract-out [struct cell ((anchor posn?))])
+         (contract-out [struct posn ((x number?) (y number?))])
+         (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?)
+                                     (neighbors (listof symbol?)))])
+         (contract-out [dir->pos (-> symbol? number?)])
+         (contract-out [pos->dir (-> number? symbol?)])
+         (contract-out [neighbor (-> symbol? symbol? symbol? symbol? (listof symbol?))])
+         (contract-out [neighbor-north (-> (listof symbol?) symbol?)])
+         (contract-out [neighbor-east (-> (listof symbol?) symbol?)])
+         (contract-out [neighbor-south (-> (listof symbol?) symbol?)])
+         (contract-out [neighbor-west (-> (listof symbol?) symbol?)])
+         (contract-out [neighbor-set (-> (listof symbol?) symbol? any/c (listof any/c))])
+         (contract-out [neighbor-update (-> (listof symbol?) symbol? (-> any/c any/c) (listof
+                                                                                       any/c))])
+         (contract-out [empty-neighborhood empty?])
+         (contract-out [select-room (-> symbol? (listof room?) room?)])
+         (contract-out [select-random (-> (non-empty-listof any/c) any/c)])
+         WIDTH HEIGHT ROOM-WIDTH ROOM-HEIGHT CELL BLANK-POSN BLANK-NEIGHBORS NEIGHBOR-MAX)
 ;;---------------------------------------------------------------------------------------------------
 #| Data |#
 ; Grid := [Listof Cell]
@@ -49,6 +67,9 @@
 (define (select-room name level)
   (first (memf (λ (a-room) (symbol=? (room-name a-room) name)) level)))
 
+; List -> X
+(define (select-random l)
+  (list-ref l (random (length l))))
 ; A Level is [List Room Room Room Room] or [Empty]
 ; A Room is (room Symbol [X -> Y] Posn Level) such that level has no more than 4 rooms.
 
@@ -61,3 +82,4 @@
 (define CELL 100) ; a cell is 100 real units wide/high
 (define BLANK-POSN (posn 0 0))
 (define BLANK-NEIGHBORS (neighbor '() '() '() '()))
+(define NEIGHBOR-MAX 4)
