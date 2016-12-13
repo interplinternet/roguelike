@@ -6,60 +6,43 @@
 #| Functions |#
 ; [Listof Room] -> [Listof Room]
 (define (new-room [list-of-room '()])
-  ; To add a new room, we select a random one from a list of valid rooms. Then we cons it onto the
-  ; list of rooms. The new room lists its previous room as a neighbor.
-  (define new-name (gensym))
+  ; To add a new room, we check to see if the neighborhood has room. If it does, then we create a new
+  ; room and cons it onto the list of rooms so far, listing the previous room as a neighbor. We
+  ; proceed to add rooms only in a linear fashion from now, each one connects directly only to the
+  ; last one.
   (cond
     [(empty? list-of-room)
      (list (random-room))]
-    [else (define first-room (first list-of-room))
-          ; this will need to be refactored with our new room representation
-          ; Neighbors are no longer a list of slots, which may be empty, and represent NESW,
-          ; They're just a list of up to four rooms with no regard for cardinal direction. This will
-          ; simplify things a lot.
-          (define random-slot (select-random-slot (valid-slots first-room)));-> N, E, S, W
-          (define new-room (make-room random-slot new-name (room-name first-room)))
-          (list* new-room
-                 (add-new-neighbor first-room random-slot new-room)
-                 (rest list-of-room))]))
+    [(has-room? (first list-of-room))
+     (define first-room (first list-of-room))
+     ; this will need to be refactored with our new room representation
+     ; Neighbors are no longer a list of slots, which may be empty, and represent NESW,
+     ; They're just a list of up to four rooms with no regard for cardinal direction. This will
+     ; simplify things a lot.
+     (define new-room (make-room (room-name first-room)))
+     (list* new-room
+            (add-new-neighbor first-room (room-name new-room))
+            (list (rest list-of-room)))]
+    [else list-of-room]))
 
-; Room -> [Listof Room]
-; We take a room's shape and center, and remove all directions which would lead outside the bounds.
-(define (valid-slots a-room)
-  (define nbors (room-neighbors a-room))
-  nbors)
+; Room -> Boolean
+(define (has-room? a-room)
+  (<= (length (room-neighbors a-room)) NEIGHBOR-MAX))
 
-; [Listof Room] -> Room
-(define (select-random-slot nbors)
-  (select-random '(north east south west)))
-
-; Slot Symbol Room -> Room
-; consumes a slot, a name, and the last room made.
-; Creates a new room with the name of the previous room in the appropriate slot. E.g., if our new room
-; is north of our previous one, attach the previous to the south slot.
-(define (make-room a-slot name prev-name)
-  (room name
+; Name -> Room
+; Consumes the name of the previous room.
+; Creates a new room with the name of the previous room in the neighborhood.
+(define (make-room prev-name)
+  (room (gensym)
         (random-shape)
-        ; does this bit even matter? NESW slots and posn have no correlation, even if a room is "east"
-        ; of another, it may not necessarily be to the east of it on the grid.
         (posn (random WIDTH) (random HEIGHT))
-        (neighbor-set empty-neighborhood a-slot (list prev-name))))
+        (list prev-name)))
 
-; Room Slot Room -> Room
+; Room Name -> Room
 ; adds a new neighbor to a room.
-(define (add-new-neighbor prev-room a-slot new-room)
-  (match prev-room
-    [(room name shape center neighbors)
-     (room name shape center
-           (neighbor-update neighbors (opposite-dir a-slot) (curry cons (room-name new-room))))]))
-
-; Symbol -> Symbol
-(define (opposite-dir direction)
-  (match direction
-    ['north 'south]
-    ['east  'west]
-    ['south 'north]
-    ['west  'east]))
+(define (add-new-neighbor prev-room new-room-name)
+  (struct-copy room prev-room
+               [neighbors (cons new-room-name (room-neighbors prev-room))]))
 
 (define (random-room)
   (room (gensym) (random-shape) (posn (random WIDTH) (random HEIGHT)) empty-neighborhood))
@@ -70,8 +53,8 @@
   (circle/g (posn 6 6) 2))
 (define excircle2
   (circle/g (posn 10 10) 2))
-(define circle-level (list (room 'alpha excircle (posn 6 6) '(() (beta) () ()))
-                           (room 'beta excircle2 (posn 10 10) '(() () () (alpha)))))
+(define circle-level (list (room 'alpha excircle (posn 6 6) '(beta))
+                           (room 'beta excircle2 (posn 10 10) '(alpha))))
 ; Level -> [List Grid Grid]
 ; Consumes a representation of a level, returns two grids: one containing all "empty" cells, and one
 ; containing all "wall" cells, or those which are not in a room.
@@ -94,96 +77,105 @@
   ; - IN -
   (walk-and-connect start initial-grid (cons start seen)))
 
+(define level? (listof room?))
+(define grid? (listof cell?))
 
 ; Level -> Grid
 (define/contract (make-grid level0)
-  ((listof room?) . -> . (listof cell?))
+  (level? . -> . grid?)
   (define initial-grid (blank-grid WIDTH HEIGHT))
-  (walk-and-connect/level level0 initial-grid))
+  (define start-room (first level0))
+  (walk-and-connect start-room level0 initial-grid '()))
 
-; Level Grid-> Grid
-(define/contract (walk-and-connect/level level grid)
-  ((listof room?) (listof cell?) . -> . (listof cell?))
-  (foldr (λ (a-room rest-of-level)
-           (walk-and-connect a-room rest-of-level level (room-neighbors a-room) (list a-room)))
-         grid
-         level))
+(define room-or-empty? (or/c room? empty?))
+(define room-name? symbol?)
 
-(define (room-or-empty? x) (or (room? x) (empty? x)))
+; Room [Listof Room] [Listof Cell] [Listof Symbol] -> [Listof Cell]
+(define (walk-and-connect home-room level walls seen)
+  (define home-grid (punch-through home-room walls)) ;[Listof Cell]
+  (define neighbors (room-neighbors home-room)) ; [Listof Symbol]
+  (define hallway (connect home-grid (select-random home-grid)
+                           (select-room (first neighbors) level) walls))
+  (append home-grid
+          hallway
+          (connect-neighbors neighbors level walls (cons (room-name home-room) seen))))
 
-; Room Grid [Listof Room] Level [Listof Room] -> Grid
-; only return connected rooms and hallways, don't worry about walls for now.
-(define/contract (walk-and-connect home-room grid neighbors0 level seen)
-  (room? (listof cell?) (listof room?) (listof room-or-empty?) (listof room-or-empty?) . -> . (listof cell?))
-  (define room-grid (punch-through home-room grid))
-  (define start-cell (select-random room-grid))
-  (define neighbors (remove* seen (remove* '(()) neighbors0)
-                             (λ (seens nbors) (equal? seens (first nbors)))))
+; [Listof Symbol] [Listof Room] [Listof Cell] [Listof Symbol] -> [Listof Cell]
+(define (connect-neighbors lon0 level walls seen)
+  (define lon (remove* seen lon0))
   (cond
-    [(empty? neighbors) room-grid]
+    [(empty? lon) '()]
     [else
-     (define first-n (select-room (first (first neighbors)) level))
-     (define new-grid0 (connect room-grid (and (cell? start-cell) start-cell) first-n grid seen))
-     (define new-grid (walk-and-connect first-n
-                                        new-grid0
-                                        (room-neighbors first-n)
-                                        (cons first-n seen)))
-     (walk-and-connect home-room new-grid (rest neighbors) (cons (room-name first-n) seen))]))
-
+     (define seen-now (cons (first lon) seen))
+     (append (walk-and-connect (select-room (first lon) level) level walls seen-now)
+             (connect-neighbors (rest lon) level walls seen-now))]))
 ; Grid Cell Room  Grid -> Grid
-; Connects a grid representing one room to one neighbor and returns a new grid
-(define/contract (connect a-room closest-cell neighbor grid [path '()])
-  (((listof cell?) cell? room? (listof cell?)) ((listof symbol?)) . ->* . (listof cell?))
+; Connects a grid representing one room to one neighbor and returns a new grid representing the
+; hallway between them.
+(define/contract (connect room-grid closest-cell neighbor grid)
+  ((listof cell?) cell? room? (listof cell?) . -> . (listof cell?))
   (define neighbor-grid (punch-through neighbor grid))
-  (cond[(inside? closest-cell neighbor-grid) (append path grid)]
-       [else (define new-closest-cell (pick-closest closest-cell neighbor-grid grid) )
-             (connect a-room new-closest-cell ;ugh
-                      neighbor grid (cons (room-name a-room) path))]))
+
+  (define (connect/helper close-cell cell-path)
+    (cond
+      [(inside? close-cell neighbor-grid)
+       (cons close-cell cell-path)]
+      [else (define new-closest-cell (pick-closest close-cell neighbor-grid grid))
+            (connect/helper new-closest-cell (cons close-cell cell-path))]))
+  ; - IN -
+  (connect/helper closest-cell '()))
+
+
+
 
 ; Room Grid -> Grid
-(define (punch-through a-room grid)
+(define/contract (punch-through a-room grid)
+  (room? (listof cell?) . -> . (listof cell?))
   (filter (λ (a-cell) (cell-fits? a-cell a-room)) grid))
+
+; Cell Room -> Boolean
+(define/contract (cell-fits? a-cell a-room)
+  (cell? room? . -> . boolean?)
+  (define the-shape (room-function a-room))
+  (the-shape (cell-anchor a-cell)))
 
 ; Cell Grid -> Boolean
 (define/contract (inside? a-cell grid)
   (cell? (listof cell?) . -> . boolean?)
-  (and (cell? a-cell) (member a-cell grid)))
+  (and (member a-cell grid) #t))
 
 ; Cell Grid Grid -> Cell
 (define (pick-closest a-cell target-grid grid)
   (define target (select-random target-grid))
   (define target-sum (sum-coords target))
-  (define surroundings (orthogonal-cells a-cell grid))
-  (argmin (λ (cell-sum) (abs (- cell-sum target-sum))) (map sum-coords surroundings)))
+  (define surroundings (orthogonal-cells a-cell))
+  (argmin (λ (a-cell) (abs (- (sum-coords a-cell) target-sum))) surroundings))
 
 ; Cell -> Number
 (define (sum-coords a-cell)
   (match a-cell
     [(cell (posn x y)) (+ x y)]))
 
-; Cell Grid -> Grid
-(define (orthogonal-cells a-cell grid)
+; Cell -> Grid
+(define/contract (orthogonal-cells a-cell)
+  (cell? . -> . (listof cell?))
   (match-define (cell (posn x y)) a-cell)
   ; it will be better to select cells by their coordinate, but for now since cells contain
   ; no information it's fine to just "recreate" them
-  (map (λ (pos) (cell pos))
-       (list (posn (sub1 x) (sub1 y)) ; upper-left
-             (posn x (sub1 y)) ; above
-             (posn (add1 x) (sub1 y)) ; upper-right
-             (posn (sub1 x) y) ; left
-             (posn (add1 x) y) ; right
-             (posn (sub1 x) (add1 y)) ; lower-left
-             (posn x (add1 y)) ; below
-             (posn (add1 x) (add1 y))))); lower-right
-
-; Cell Room -> Boolean
-(define (cell-fits? a-cell a-room)
-  (define the-shape (room-function a-room))
-  (the-shape (cell-anchor a-cell)))
+  (map (λ (pos) (if (posn? pos) (cell pos) (error a-cell)))
+       (filter-not (λ (pos) (or (negative? (posn-x pos)) (negative? (posn-y pos))))
+                   (list (posn (sub1 x) (sub1 y)) ; upper-left
+                         (posn x (sub1 y)) ; above
+                         (posn (add1 x) (sub1 y)) ; upper-right
+                         (posn (sub1 x) y) ; left
+                         (posn (add1 x) y) ; right
+                         (posn (sub1 x) (add1 y)) ; lower-left
+                         (posn x (add1 y)) ; below
+                         (posn (add1 x) (add1 y)))))); lower-right
 
 ; Number Number -> Grid
 ; Consumes 2 numbers representing the number of logical cells each row and column should have.
-(define (blank-grid w h)
+(define (blank-grid w h) 
   (for*/list ([y (in-range h)]
               [x (in-range w)])
     (cell (posn x y))))
@@ -199,14 +191,6 @@
 (define (make-level number-of-rooms)
   (self-apply new-room (list (room (gensym) (random-shape) BLANK-POSN empty-neighborhood))
               number-of-rooms))
-
-;;---------------------------------------------------------------------------------------------------
-#| HALLWAYS |#
-(define ex-level (make-level 5))
-#;(define ex-grid
-    (let-values ([(rooms walls) (make-grid ex-level)]) ; causing bug room-name: contract violation
-      ; expected: room? given: '()
-      (list rooms walls)))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Rendering |#
@@ -265,12 +249,3 @@
     (pin-over backg
               (* (posn-x anchor) CELL) (* CELL (posn-y anchor))
               (colored-cell a-cell))))
-
-
-
-#;(define (random-level)
-    (list (room (gensym) (random-shape) (posn 6 6) empty-neighborhood)))
-
-;(define r-level (list (room (gensym) (random-rectangle) (posn 6 6) empty-neighborhood)))
-
-;(define example-level (draw-grid (make-level 2)))
