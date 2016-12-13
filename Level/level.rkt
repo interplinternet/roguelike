@@ -162,7 +162,7 @@
   (match-define (cell (posn x y)) a-cell)
   ; it will be better to select cells by their coordinate, but for now since cells contain
   ; no information it's fine to just "recreate" them
-  (map (λ (pos) (if (posn? pos) (cell pos) (error a-cell)))
+  (map (λ (pos) (cell pos))
        (filter-not (λ (pos) (or (negative? (posn-x pos)) (negative? (posn-y pos))))
                    (list (posn (sub1 x) (sub1 y)) ; upper-left
                          (posn x (sub1 y)) ; above
