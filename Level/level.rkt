@@ -1,5 +1,6 @@
 #lang racket
-(require "../data.rkt" "shapes.rkt" "helpers.rkt" racket/shared pict racket/trace rackunit)
+(require "../data.rkt" "../helpers.rkt" "shapes.rkt" racket/shared pict racket/trace rackunit)
+
 (provide (all-defined-out))
 
 ;;---------------------------------------------------------------------------------------------------
@@ -190,7 +191,7 @@
 ; selects a random shape with random parameters within certain constraints.
 (define (random-shape)
   (define list-of-shapes (list random-circle random-rectangle))
-  [(list-ref list-of-shapes (random (length list-of-shapes)))])
+  ((select-random list-of-shapes)))
 
 ; Number -> Level
 ; Generates a level containing Number amount of rooms.
@@ -239,12 +240,14 @@
 
 ; Grid Grid -> image
 ; Consumes two grids, one of cells which are located in rooms, and one which is not.
-(define (draw-grid a-level)
-  (define floor (make-grid a-level))
-  (define wall (remove* floor (blank-grid WIDTH HEIGHT)))
-  ; - IN -
-  (lt-superimpose (draw-cells (const black-cell) wall)
-                  (draw-cells (λ (a-cell) (pin-cell-coords white-cell a-cell)) floor)))
+(define (draw-grid a-level [floor '()])
+  (cond
+    [(empty? floor) (draw-grid (make-grid a-level))]
+    [else
+     (define wall (remove* floor (blank-grid WIDTH HEIGHT)))
+     ; - IN -
+     (lt-superimpose (draw-cells (const black-cell) wall)
+                     (draw-cells (λ (a-cell) (pin-cell-coords white-cell a-cell)) floor))]))
 
 (define (draw-grid2 a-level)
   (define grid (make-grid a-level))

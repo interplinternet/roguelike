@@ -1,5 +1,5 @@
 #lang racket/gui
-(require "Level/level.rkt" "data.rkt" pict)
+(require "Level/level.rkt" "data.rkt" "helpers.rkt" pict)
 (provide (all-defined-out))
 ; eventually we'll pull out the gui, pict, etc. elements. They're in here for easy testing, it's
 ; easier to see how everything fits.
@@ -46,33 +46,23 @@
 (define (update-grid a-grid f)
   (deep-map a-grid f))
 
-;[Listof [Listof Any]] [Any -> Any] -> [Listof [Listof Any]]
-(define (deep-map lol f)
-  (cond
-    [(empty? lol) '()]
-    [(cons? (first lol))
-     (cons (deep-map (first lol) f)
-           (deep-map (rest lol) f))]
-    [else (cons (f (first lol))
-                (deep-map (rest lol) f))]))
-
 ; Posn Level -> [List [Listof Being] [Listof Item]]
 (define (whats-on pos a-level)
   (define item-table (world-items a-level))
   (define entity-table (world-entities a-level))
   (cond
     [(and (hash-has-key? entity-table pos) (hash-has-key? item-table pos))
-     (list (hash-ref entity-table pos) (hash-ref item-table pos))]
+     (append (hash-ref entity-table pos) (hash-ref item-table pos))]
     [(hash-has-key? entity-table pos)
-     (list (hash-ref entity-table pos))]
+     (hash-ref entity-table pos)]
     [(hash-has-key? item-table pos)
-     (list (hash-ref item-table pos))]
+     (hash-ref item-table pos)]
     [else '()])) ; maybe #f, or '(())?
 ;;---------------------------------------------------------------------------------------------------
 #| Examples |#
 (define exgrid (make-grid (make-level 3)))
-(define explayer (player 100 10 (select-random (map cell-anchor exgrid)) '(sword shield) '(bag bow arrow)))
-(define exmons '(orc goblin doggo))
+(define explayer (player 100 10 (select-random (map cell-anchor exgrid)) `(sword shield) `(bag bow arrow)))
+(define exmons `(orc goblin doggo))
 (define EXMSGLOG '("most recent message" "immediately prior" "last message"))
 (define exmonhash
   (hash (posn 0 0) `(orc)
@@ -101,7 +91,8 @@
     ; DC -> Void
     (define/public (draw-world dc)
       (match-define (player _ _ (posn x y) _ _) plyr)
-      ; draw the world, overlay the monsters on that, overlay the player on that. 
+      (draw-pict (draw-grid exgrid) dc 0 0)
+      ;  the world, overlay the monsters on that, overlay the player on that. 
       )
     ; DC -> Void
     (define/public (draw-player dc)

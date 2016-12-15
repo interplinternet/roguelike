@@ -1,5 +1,5 @@
 #lang racket
-(require "data.rkt")
+(require "../data.rkt")
 (provide (all-defined-out))
 ;;---------------------------------------------------------------------------------------------------
 #| Room shapes |#
@@ -64,6 +64,6 @@
 
 ; -> [Posn -> Boolean]
 (define (random-circle)
-  (define radians (random1 (/ ROOM-WIDTH 2)))
+  (define radians (random1 (round (/ ROOM-WIDTH 2))))
   (define center (posn (random radians (- WIDTH radians)) (random radians (- WIDTH radians))))
   (circle/g center radians))
