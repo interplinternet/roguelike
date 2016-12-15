@@ -1,5 +1,5 @@
 #lang racket/gui
-(require pict)
+(require "Level/level.rkt" pict)
 (provide (all-defined-out))
 ; eventually we'll pull out the gui, pict, etc. elements. They're in here for easy testing, it's
 ; easier to see how everything fits.
@@ -31,8 +31,8 @@
 (struct player being [eqp inv] #:transparent)
 ; A Player is (player Number Number Posn [Listof Item] [Listof Item])
 
-(struct cell [location content] #:transparent)
-;A Cell is (cell Posn Any), where Posn represents its location, and Any is the content.
+(struct cell [location terrain] #:transparent)
+;A Cell is (cell Posn Symbol), where Posn represents its location, and terrain is the content.
 
 (struct terrain (type))
 ; The terrain of a cell := (terrain String),
@@ -40,13 +40,6 @@
 
 ;;--------------------------------------------------------------------------------------------------
 #| Functions |#
-; Number Any -> [Listof [Listof Posn Any]]
-; A nested for/list call is not quite the same as for*/list. The former creates a list of lists, which
-; we want for easy reference to each row, and the latter creates a single flattened list.
-(define (make-grid len content)
-  (for/list ([row (in-range len)])
-    (for/list ([col (in-range len)])
-      (cell (posn row col) content))))
 
 ; [Listof [Listof Posn Any]] -> [Listof [Listof Posn Any]]
 ; A grid is a list of lists. We update by applying f to every element.
@@ -79,7 +72,7 @@
 #| Examples |#
 (define explayer (player 100 10 (posn 100 100) '(sword shield) '(bag bow arrow)))
 (define exmons '(orc goblin doggo))
-(define exgrid (make-grid 3 (terrain "floor")))
+(define exgrid (make-grid 3 (terrain 'floor)))
 (define EXMSGLOG '("most recent message" "immediately prior" "last message"))
 (define exmonhash
   (hash (posn 0 0) `(orc)

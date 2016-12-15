@@ -1,6 +1,6 @@
 #lang racket
 ;(provide (all-defined-out))
-(provide (contract-out [struct cell ((anchor posn?))])
+(provide (contract-out [struct cell ((anchor posn?) (terrain symbol?))])
          (contract-out [struct posn ((x number?) (y number?))])
          (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?)
                                      (neighbors (listof symbol?)))])
@@ -21,9 +21,9 @@
 ;;---------------------------------------------------------------------------------------------------
 #| Data |#
 ; Grid := [Listof Cell]
-; Cell := (cell Posn)
-; Where Posn is the anchor of the cell, in the upper left corner
-(struct cell (anchor) #:transparent) 
+; Cell := (cell Posn Terrain)
+; Where Posn is the anchor of the cell, in the upper left corner, and terrain is a symbol.
+(struct cell (anchor terrain) #:transparent) 
 
 ; A room is:
 ; (struct [Number -> Any] Number)
