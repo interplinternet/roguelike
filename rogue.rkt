@@ -1,5 +1,5 @@
 #lang racket/gui
-(require "Level/level.rkt" pict)
+(require "Level/level.rkt" "Level/data.rkt" pict)
 (provide (all-defined-out))
 ; eventually we'll pull out the gui, pict, etc. elements. They're in here for easy testing, it's
 ; easier to see how everything fits.
@@ -70,9 +70,9 @@
     [else '()])) ; maybe #f, or '(())?
 ;;---------------------------------------------------------------------------------------------------
 #| Examples |#
-(define explayer (player 100 10 (posn 100 100) '(sword shield) '(bag bow arrow)))
+(define exgrid (make-grid (make-level 3)))
+(define explayer (player 100 10 (select-random (map cell-anchor exgrid)) '(sword shield) '(bag bow arrow)))
 (define exmons '(orc goblin doggo))
-(define exgrid (make-grid 3 (terrain 'floor)))
 (define EXMSGLOG '("most recent message" "immediately prior" "last message"))
 (define exmonhash
   (hash (posn 0 0) `(orc)
@@ -98,6 +98,11 @@
     (init-field [monsters exmons])
     (init-field [grid exgrid])
 
+    ; DC -> Void
+    (define/public (draw-world dc)
+      (match-define (player _ _ (posn x y) _ _) plyr)
+      ; draw the world, overlay the monsters on that, overlay the player on that. 
+      )
     ; DC -> Void
     (define/public (draw-player dc)
       (match-define (player _ _ (posn x y) _ _) plyr)
@@ -131,10 +136,10 @@
 (define dummy-frame
   (new frame%
        [label "dummy"]
-       [min-width 800]
-       [min-height 800]))
+       [min-width WIDTH]
+       [min-height HEIGHT]))
 (define dummy (new main%
                    [parent dummy-frame]
                    [paint-callback
                     (λ (canvas dc)
-                      (send dummy draw-player dc))]))
+                      (send dummy draw-world dc))]))

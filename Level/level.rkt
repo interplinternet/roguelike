@@ -4,6 +4,28 @@
 
 ;;---------------------------------------------------------------------------------------------------
 #| Functions |#
+; The neighbors of a room are represented with a single list, which we treat as a structure.
+(define-values (neighbor neighbor-north neighbor-east neighbor-south neighbor-west)
+  (values (λ (north east south west) (list north east south west))
+          first
+          second
+          third
+          fourth))
+
+(define empty-neighborhood '())
+; Functional setting, updating, and an empty neighborhood.
+#;(define-values (neighbor-set neighbor-update empty-neighborhood)
+    (values (λ (neighborhood direction value)
+            (list-set neighborhood (dir->pos direction) value))
+          (λ (neighborhood direction updater)
+            (list-update neighborhood (dir->pos direction) updater))
+          '()))
+
+; Symbol Level -> Room
+(define (select-room name level)
+  (first (memf (λ (a-room) (symbol=? (room-name a-room) name)) level)))
+
+
 ; [Listof Room] -> [Listof Room]
 (define (new-room [list-of-room '()])
   ; To add a new room, we check to see if the neighborhood has room. If it does, then we create a new
