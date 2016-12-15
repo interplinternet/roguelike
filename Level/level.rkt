@@ -139,15 +139,15 @@
 
 ; Cell -> Number
 (define/match (sum-coords a-cell)
-  [((cell (posn x y))) (+ x y)])
+  [((cell (posn x y) _)) (+ x y)])
 
 ; Cell -> Grid
 (define/contract (orthogonal-cells a-cell grid)
   (cell? (listof cell?) . -> . (listof cell?))
-  (match-define (cell (posn x y)) a-cell)
+  (match-define (cell (posn x y) _) a-cell)
 
   (define orthogonal-c
-    (map (curry cell)
+    (map (curryr cell 'floor)
          (list (posn x (sub1 y)) ; above
                (posn (sub1 x) y) ; left
                (posn (add1 x) y) ; right
@@ -162,7 +162,7 @@
 (define (blank-grid w h)
   (for*/list ([y (in-range h)]
               [x (in-range w)])
-    (cell (posn x y))))
+    (cell (posn x y) 'floor)))
 
 ;-> [X -> Y]
 ; selects a random shape with random parameters within certain constraints.
@@ -199,7 +199,7 @@
 
 ; Image Cell -> Image
 (define (pin-cell-coords img a-cell)
-  (match-define (cell (posn x y)) a-cell)
+  (match-define (cell (posn x y) _) a-cell)
   (pin-over img 5 5 (text (string-append (number->string x) ", " (number->string y)) 'default 30)))
 
 ; String -> Image
