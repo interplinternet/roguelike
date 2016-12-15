@@ -1,5 +1,5 @@
 #lang racket
-(require "data.rkt" "shapes.rkt" "helpers.rkt" racket/shared pict racket/trace rackunit)
+(require "../data.rkt" "shapes.rkt" "helpers.rkt" racket/shared pict racket/trace rackunit)
 (provide (all-defined-out))
 
 ;;---------------------------------------------------------------------------------------------------

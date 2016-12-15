@@ -1,5 +1,5 @@
 #lang racket/gui
-(require "Level/level.rkt" "Level/data.rkt" pict)
+(require "Level/level.rkt" "data.rkt" pict)
 (provide (all-defined-out))
 ; eventually we'll pull out the gui, pict, etc. elements. They're in here for easy testing, it's
 ; easier to see how everything fits.
