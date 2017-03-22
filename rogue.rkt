@@ -76,7 +76,7 @@
         (posn 2 3) `(dagger potion)
         (posn 3 3) `(arrow)))
 
-(define exworld (world exmonhash exitemhash exgrid))
+;(define exworld (world exmonhash exitemhash exgrid))
 
 ;;---------------------------------------------------------------------------------------------------
 #| MAIN |#

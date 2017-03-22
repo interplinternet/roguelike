@@ -36,9 +36,9 @@
   (oper (posn-y point) (function (posn-x point))))
 ; ((hook/dyadic oper function) posn-y posn-x)
 
-; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean]
-; A shape consumes a number of inequalities representing lines of a geometric figure. It conjoins all
-; functions given, then applies them to the x- and y-points of a posn.
+; [Listof [Number Number -> Boolean]] -> [Posn -> Boolean] A shape consumes a number of inequalities
+; representing lines of a geometric figure. It conjoins all functions given, then applies them to the
+; x- and y-points of a posn.
 (define ((shape . lines) point)
   [(apply conjoin lines) (posn-x point) (posn-y point)])
 

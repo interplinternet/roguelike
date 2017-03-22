@@ -17,14 +17,14 @@
 ; Functional setting, updating, and an empty neighborhood.
 #;(define-values (neighbor-set neighbor-update empty-neighborhood)
     (values (λ (neighborhood direction value)
-            (list-set neighborhood (dir->pos direction) value))
-          (λ (neighborhood direction updater)
-            (list-update neighborhood (dir->pos direction) updater))
+              (list-set neighborhood (dir->pos direction) value))
+            (λ (neighborhood direction updater)
+              (list-update neighborhood (dir->pos direction) updater))
           '()))
 
 ; Symbol Level -> Room
 (define (select-room name level)
-  (first (memf (λ (a-room) (symbol=? (room-name a-room) name)) level)))
+  (findf (λ (a-room) (symbol=? (room-name a-room) name)) level))
 
 
 ; [Listof Room] -> [Listof Room]
