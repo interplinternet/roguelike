@@ -31,8 +31,7 @@
 (struct posn [x y] #:transparent)
 
 ; A Room is:
-(struct room [name function anchor neighbors] #:transparent)
-; (room Symbol [Posn -> Any] Posn [Listof Symbol])
+(struct room [name function anchor] #:transparent)
+; (room Symbol [Posn -> Any] Posn)
 ; The function determines the shape of the room, and
-; the anchor is the location of its central point in the level. Neighbors field is a list of symbols
-; representing the names of all of its neighbors. -- A room is really a node in a graph.
+; the anchor is the location of its central point in the level.
