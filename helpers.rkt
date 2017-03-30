@@ -33,7 +33,6 @@
   ((listof any/c) . -> . any/c)
   (list-ref l (random (length l))))
 
-
 ;[Listof [Listof Any]] [Any -> Any] -> [Listof [Listof Any]]
 (define (deep-map lol f)
   (cond
