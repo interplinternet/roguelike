@@ -1,9 +1,8 @@
 #lang racket
-(provide WIDTH HEIGHT PWIDTH PHEIGHT ROOM-WIDTH ROOM-HEIGHT CELL NEIGHBOR-MAX
+(provide WIDTH HEIGHT PWIDTH PHEIGHT ROOM-WIDTH ROOM-HEIGHT CELL NEIGHBOR-MAX TEXT-SIZE
          (contract-out [struct cell ((anchor posn?) (terrain symbol?))])
          (contract-out [struct posn ((x number?) (y number?))])
-         (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?)
-                                     (neighbors (listof symbol?)))]) 
+         (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?))]) 
          )
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#
@@ -13,7 +12,9 @@
 (define PHEIGHT PWIDTH)
 (define ROOM-WIDTH (round (/ WIDTH 4))) ; a room can be no larger than a quarter of the map
 (define ROOM-HEIGHT ROOM-WIDTH)
-(define CELL (round (/ PWIDTH WIDTH))) ; a cell is wide enough to fid WIDTH number of cells in PWIDTH
+; a physical cell is wide enough to fit WIDTH number of logical cells in PWIDTH
+(define CELL (round (/ PWIDTH WIDTH)))
+(define TEXT-SIZE (/ CELL 4))
 (define NEIGHBOR-MAX 4)
 
 ;;---------------------------------------------------------------------------------------------------
