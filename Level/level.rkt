@@ -46,10 +46,10 @@
 ; Number -> Level
 ; Imperatively generates a level containing Number amount of rooms.
 (define (make-level! number-of-rooms [level (unweighted-graph/undirected '())])
-     (begin (for ([i (in-range number-of-rooms)])
-              (new-room! level))
-            (set! *LEVEL* level)
-            level))
+  (begin (for ([i (in-range number-of-rooms)])
+           (new-room! level))
+         (set! *LEVEL* level)
+         level))
 
 ;;---------------------------------------------------------------------------------------------------
 #| Grid Creation |#
@@ -160,14 +160,14 @@
 ; it has we overlay a line to them and recurse on each. Maybe I can use pict-finders?
 (define (draw-level level0)
   (define (draw-helper level)
-  (cond
-    [(empty? level) (blank WIDTH)]
-    [else
-     (match-define (room name shape center) (first level))
-     (pin-over (draw-helper (rest level))
-               (posn-x center)
-               (posn-y center)
-               (circle 10))]))
+    (cond
+      [(empty? level) (blank WIDTH)]
+      [else
+       (match-define (room name shape center) (first level))
+       (pin-over (draw-helper (rest level))
+                 (posn-x center)
+                 (posn-y center)
+                 (circle 10))]))
   ; - in -
   (draw-helper (get-vertices level0)))
 
