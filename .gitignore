@@ -2,3 +2,12 @@
 *.bak
 *.org
 **compiled/
+compiled/drracket/errortrace/
+
+Level/compiled/drracket/errortrace/
+
+Level/Thumbs\.db
+
+level\.bmp
+
+Level/graph testing\.rkt
