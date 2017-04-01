@@ -129,6 +129,7 @@
        [label "dummy"]
        [min-width WIDTH]
        [min-height HEIGHT]))
+
 (define dummy (new main%
                    [parent dummy-frame]
                    [paint-callback

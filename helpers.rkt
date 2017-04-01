@@ -42,3 +42,7 @@
            (deep-map (rest lol) f))]
     [else (cons (f (first lol))
                 (deep-map (rest lol) f))]))
+
+; hey here's an idea, what about "implicit cut" macro? similar to scala fancy app for racket, but
+; using an already established srfi
+(define (star-it fn args) (apply fn args))
