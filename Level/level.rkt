@@ -14,7 +14,7 @@
 (define (select-room name level)
   (findf (λ (a-room) (symbol=? (room-name a-room) name)) (get-vertices level)))
 
-; Room -> Boolean
+; Room Level -> Boolean
 (define (has-room? a-room level)
   (<= (length (get-neighbors level a-room)) NEIGHBOR-MAX))
 
