@@ -15,29 +15,6 @@
 (define PLAYER-IMG
   (text "@" 'modern UNIT))
 
-;;----------------------------------------------------------------------------------------------------
-#| Structs |#
-(struct posn [x y] #:transparent)
-; A Posn is (posn Number Number),
-; the X- & Y-Coordinate of an entity or cell on the level
-
-; Maybe I should implement some generics for these?
-(struct being [hp dmg loc] #:transparent)
-; A being is: (player Number Number Posn)
-
-(struct world [entities items level] #:transparent)
-; A Game is (game [Listof Being] [Listof Item] Grid)
-
-(struct player being [eqp inv] #:transparent)
-; A Player is (player Number Number Posn [Listof Item] [Listof Item])
-
-(struct cell [location terrain] #:transparent)
-;A Cell is (cell Posn Symbol), where Posn represents its location, and terrain is the content.
-
-(struct terrain (type))
-; The terrain of a cell := (terrain String),
-; where String is "floor" or "wall"
-
 ;;--------------------------------------------------------------------------------------------------
 #| Functions |#
 

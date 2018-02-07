@@ -24,15 +24,31 @@
 
 ; Grid := [Listof Cell]
 ; Cell := (cell Posn Terrain)
-; Where Posn is the anchor of the cell, in the upper left corner, and terrain is a symbol.
+; Terrain := Symbol
+; Where Posn is the anchor of the cell, in the upper left corner, and terrain is the content.
 (struct cell (anchor terrain) #:transparent) 
 
-; A room is:
-; (struct [Number -> Any] Number)
+; A posn is:
 (struct posn [x y] #:transparent)
+; (posn Number Number),
+; the X- & Y-Coordinate of an entity or cell on the level
 
 ; A Room is:
 (struct room [name function anchor] #:transparent)
 ; (room Symbol [Posn -> Any] Posn)
 ; The function determines the shape of the room, and
 ; the anchor is the location of its central point in the level.
+
+; Maybe I should implement some generics for these?
+(struct being [hp dmg loc] #:transparent)
+; A being is (player Number Number Posn)
+
+(struct world [entities items level] #:transparent)
+; A Game is (game [Listof Being] [Listof Item] Grid)
+
+(struct player being [eqp inv] #:transparent)
+; A Player is (player Number Number Posn [Listof Item] [Listof Item])
+
+(struct terrain (type))
+; The terrain of a cell := (terrain String),
+; where String is "floor" or "wall"
