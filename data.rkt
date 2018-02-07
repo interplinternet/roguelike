@@ -2,8 +2,8 @@
 (provide WIDTH HEIGHT PWIDTH PHEIGHT ROOM-WIDTH ROOM-HEIGHT CELL NEIGHBOR-MAX TEXT-SIZE
          (contract-out [struct cell ((anchor posn?) (terrain symbol?))])
          (contract-out [struct posn ((x number?) (y number?))])
-         (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?))]) 
-         )
+         (contract-out [struct room ((name symbol?) (function (-> posn? any/c)) (anchor posn?))]))
+         
 ;;---------------------------------------------------------------------------------------------------
 #| CONSTANTS |#
 (define WIDTH 100) ; the width of a level is 100 logical cells
