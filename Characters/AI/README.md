@@ -1,6 +1,14 @@
 # AI
-The basic idea will be to use a basic deterministic finite state machine to model creature behavior.
+The idea will be to use a basic deterministic finite state machine to model creature behavior.
 ## DFSA
+A DFSA is represented using a State Transition Table.
+```
+State Transition Table := [Listof Transition]
+Transition := (transition State Events)
+State := Symbol
+Events := [Listof Event]
+Event := [Any -> Boolean]
+```
 The states are
 * `wait`
     This indicates a continued holding pattern, such as resting or sleep.
