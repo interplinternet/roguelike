@@ -1,42 +1,44 @@
 #lang racket
-(require automata/dfa)
+(require "../../fsm.rkt")
 (provide (all-defined-out))
 
 ;; These are placeholders for now.
 (define (waited-long-enough? crtr)
-    #true)
+  #true)
 
 (define (heard-something? crtr)
-    #true)
+  #true)
 
 (define (found-something? crtr)
-    #true)
+  #true)
 
 (define (investigated-long-enough? crtr)
-    #true)
+  #true)
 
 (define (enemy-lost? crtr)
-    #true)
+  #true)
 
 (define (enemy-in-range? crtr)
-    #true)
+  #true)
 
 (define (hurt-badly? crtr)
-    #true)
+  #true)
 
 (define (fleed-long-enough? crtr)
-    #true)
+  #true)
+
+(define (enemy-ran? crtr)
+  #true)
 
 (define creature
-    (dfa 'wait
-    ['wait ([(waited-long-enough?) 'wander]
-            [(heard-something?) 'investigate]
-            [(not (waited-long-enough?)) 'wait])]
-    ['investigate ([(investigated-long-enough?) 'wait]
-                   [(found-something?) 'chase]
-                   [(investigated-long-enough?) 'wander])]
-    ['chase ([(enemy-lost?) 'investigate]
-             [(enemy-in-range?) 'fight])]
-    ['fight ([(enemy-ran?) 'chase]
-             [(hurt-badly?) 'flee])]
-    ['flee ([(fleed-long-enough?) 'wait])]))
+  (list (transition 'wait (list (event waited-long-enough? 'wander)
+                                (event found-something? 'chase)
+                                (event (negate waited-long-enough?) 'wait)))
+        (transition 'wander (list (event waited-long-enough? 'wander)
+                                  (event found-something? 'chase)
+                                  (event (negate waited-long-enough?) 'wait)))
+        (transition 'chase (list (event enemy-lost? 'wait)
+                                 (event enemy-in-range? 'fight)))
+        (transition 'fight (list (event enemy-ran? 'chase)
+                                 (event hurt-badly? 'flee)))
+        (transition 'flee (list (event fleed-long-enough? 'wait)))))
